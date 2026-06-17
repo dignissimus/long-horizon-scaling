@@ -9,14 +9,16 @@ from harness.mechanisms.mechanism import Mechanism
 
 
 @solver
-def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30, seed: int | None = None) -> Solver:
+def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30, seed: int) -> Solver:
     """
     Main Inspect solver that runs the middleware-style lifecycle loops across a list of mechanisms.
     """
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        actual_seed = seed if seed is not None else state.metadata.get("seed", 42)
+        if seed is None:
+            raise ValueError("harness_orchestrator requires a 'seed' argument. It cannot be None.")
+        
         env: GameEnvironment = environment_factory()
-        obs, env_info = env.reset(seed=actual_seed)
+        obs, env_info = env.reset(seed=seed)
         
         mech_state = MechanismState()
         

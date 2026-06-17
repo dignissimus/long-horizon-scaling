@@ -54,7 +54,7 @@ def main():
     print(f"Total Tasks:       {len(all_tasks)} (8 Configs x {seeds} Seeds)")
     print("=" * 60)
     
-    eval_logs = eval(all_tasks, model=model)
+    eval_logs = eval(all_tasks, model=model, max_tasks=10)
     
     
     dataset_records = []
