@@ -40,7 +40,7 @@ class M6PlanningForced(Mechanism):
             "GOAL: [what you are trying to do]\n"
             "PLAN: [your step-by-step plan for the next 3 actions]"
         )
-        
+
         temp_state = TaskState(
             model="planning",
             sample_id="plan",
@@ -48,10 +48,50 @@ class M6PlanningForced(Mechanism):
             input=[],
             messages=[ChatMessageUser(content=planning_instruction)]
         )
-        
+
         response = await generate_fn(temp_state)
         plan_output = response.output.completion
-        
+
         return f"{current_prompt}\n\n--- [M6 Planning & Synthesis] ---\n{plan_output}\n"
 
-M6Planning = M6PlanningForced
+class M6PlanningForcedWithChainOfThought(Mechanism):
+    """
+    Targets: integration.
+    Forces an explicit synthesis step before action execution (Map-then-Act)
+    using a secondary asynchronous LLM call.
+    """
+    async def augment_prompt_async(self, current_prompt: str, env: GameEnvironment, state: MechanismState, generate_fn: Callable) -> str:
+        from inspect_ai.model import ChatMessageAssistant
+
+        cot_instruction = (
+            f"Here is the current situation:\n{current_prompt}\n\n"
+            "Before devising a formal plan, please think step-by-step about what you know, what you have, and what your ultimate goal should be. Output ONLY your reasoning."
+        )
+
+        temp_state = TaskState(
+            model="planning",
+            sample_id="plan",
+            epoch=1,
+            input=[],
+            messages=[ChatMessageUser(content=cot_instruction)]
+        )
+
+        response1 = await generate_fn(temp_state)
+        reasoning_output = response1.output.completion
+
+        temp_state.messages.append(ChatMessageAssistant(content=reasoning_output))
+        formatting_instruction = (
+            "Now, synthesize your reasoning into a formal plan. Output your response exactly in this format:\n"
+            "KNOWN: [what you know about the environment]\n"
+            "HAVE: [what is in your inventory]\n"
+            "GOAL: [what you are trying to do]\n"
+            "PLAN: [your step-by-step plan for the next 3 actions]"
+        )
+        temp_state.messages.append(ChatMessageUser(content=formatting_instruction))
+
+        response2 = await generate_fn(temp_state)
+        plan_output = response2.output.completion
+
+        return f"{current_prompt}\n\n--- [M6 Planning & Synthesis] ---\nReasoning:\n{reasoning_output}\n\n{plan_output}\n"
+
+M6Planning = M6PlanningForcedWithChainOfThought

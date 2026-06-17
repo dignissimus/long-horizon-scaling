@@ -1,14 +1,26 @@
-from inspect_ai.solver import Solver, chain_of_thought
+from inspect_ai.solver import Solver, TaskState, Generate
+from inspect_ai.model import ChatMessageUser, ChatMessageAssistant
 
 from harness.mechanisms.mechanism import Mechanism
 
 
+def explicit_cot_solver() -> Solver:
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        state.messages.append(ChatMessageUser(content="Before taking your action, please think step-by-step about what you should do next. Output ONLY your reasoning process and do not include the action itself."))
+        response = await generate(state)
+        state.messages.append(ChatMessageAssistant(content=response.output.completion))
+        state.messages.append(ChatMessageUser(content="Based on your reasoning, what is your next action? Do NOT wrap the action in quotes."))
+        return state
+    return solve
+
+# TODO: Moved COT to M6 since the spirit of M4 is dynamically controlling how much effort we spend
 class M4ChainOfThought(Mechanism):
     """
     Targets: budget/liveness.
-    Enables native inspect_ai chain_of_thought
+    Enables explicit 2-step multi-turn chain_of_thought
     """
     def get_solvers(self) -> list[Solver]:
-        return [chain_of_thought()]
+        raise NotImplementedError
+        return [explicit_cot_solver()]
 
 M4AdaptiveCompute = M4ChainOfThought

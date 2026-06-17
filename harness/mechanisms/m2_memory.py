@@ -21,14 +21,17 @@ class M2Memory(Mechanism):
         return current_prompt
 
     async def augment_prompt_async(self, current_prompt: str, env: GameEnvironment, state: MechanismState, generate_fn: Callable) -> str:
+        last_action = state.state_cache.get("last_action")
+        action_context = f"Last Action Taken: '{last_action}'\n" if last_action else ""
+        
         mem_prompt = (
-            f"Here is the current situation:\n{current_prompt}\n\n"
+            f"Here is the current situation:\n{action_context}{current_prompt}\n\n"
             f"Here is your current memory scratchpad:\n{self.memory}\n\n"
             "Based on this new information, please provide an updated version of your memory scratchpad. "
             "It should be a concise summary of what you have done so far, what your current sub-goal is, and any important details you need to remember. "
             "Output ONLY the updated memory text."
         )
-        
+
         temp_state = TaskState(
             model="memory_update",
             sample_id="mem",

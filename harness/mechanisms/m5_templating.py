@@ -15,7 +15,8 @@ class M5ActionTemplating(Mechanism):
             actions_list = ", ".join(f"'{a}'" for a in valid_actions)
             constraint = (
                 f"\n--- [M5 Admissible Actions] ---\n"
-                f"You MUST choose your exact action from the following list: {actions_list}"
+                f"You MUST choose your exact action from the following list: {actions_list}\n"
+                f"Output ONLY the action string. Do NOT add conversational text like 'I will' or any prefixes/suffixes. Do NOT wrap the action in quotes."
             )
             return current_prompt + constraint
         return current_prompt

@@ -26,9 +26,8 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
             model_kwargs = m.configure_model(model_kwargs)
         
         step_log = []
-
         for step in range(max_steps):
-            base_prompt = f"Step {step+1}/{max_steps}\nCurrent Observation: {obs}\nWhat is your next action?"
+            base_prompt = f"Step {step+1}/{max_steps}\nCurrent Observation: {obs}\nWhat is your next action? Respond ONLY with your exact action string and nothing else."
             
             for m in mechanisms:
                 base_prompt = m.format_prompt(base_prompt, env, mech_state)
@@ -37,6 +36,8 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                 # TODO: Probably want to rename to make clear that these typically call the model
                 base_prompt = await m.augment_prompt_async(base_prompt, env, mech_state, generate)
 
+            # TODO: Do we want to always give the model the full step history?
+            # Probably? For consistency
             state.messages.append(ChatMessageUser(content=base_prompt))
             
             for m in mechanisms:
@@ -44,7 +45,7 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                     state = await s(state, generate)
             
             response = await generate(state, **model_kwargs)
-            action_candidate = response.output.completion
+            action_candidate = response.output.completion.strip("'\" \n\t")
             
             final_action = action_candidate
             for m in mechanisms:

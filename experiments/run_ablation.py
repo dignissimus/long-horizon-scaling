@@ -20,8 +20,42 @@ from harness.solver import harness_orchestrator
 from harness.scorer import harness_scorer
 
 
+def create_tasks(experiment_name: str, active_mechanisms: list, seeds: int, steps: int):
+    if not active_mechanisms:
+        config_name = "baseline"
+    else:
+        config_name = "_".join([m.__class__.__name__[:2] for m in active_mechanisms]).lower()
+
+    tasks = []
+    for idx in range(seeds):
+        current_seed = 1000 + idx
+        
+        @task(name=f"{experiment_name}_{config_name}_seed_{current_seed}")
+        def ablation_task() -> Task:
+            dataset = MemoryDataset([
+                Sample(
+                    input="Initialize CookingWorld Run with unique layout configurations.", 
+                    target="Success", 
+                    metadata={"seed": current_seed}
+                )
+            ])
+            return Task(
+                dataset=dataset,
+                solver=harness_orchestrator(
+                    environment_factory=CookingWorldEnvironment, 
+                    mechanisms=active_mechanisms, 
+                    max_steps=steps,
+                    seed=current_seed
+                ),
+                scorer=harness_scorer()
+            )
+        tasks.append(ablation_task())
+    return tasks
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Complete Ablation CLI for Long-Horizon Game Agents.")
+    
+    parser.add_argument("--experiment", type=str, default="run", help="Prefix name for the experiment to group tasks in Inspect View")
     
     parser.add_argument("--m1", action="store_true", help="Enable M1 Information-Seeking mode")
     
@@ -52,30 +86,7 @@ def main() -> None:
     if args.m6:
         active_mechanisms.append(M6Planning())
 
-    tasks = []
-    for idx in range(args.seeds):
-        current_seed = 1000 + idx
-        
-        @task(name=f"ablation_task_seed_{current_seed}")
-        def ablation_task() -> Task:
-            dataset = MemoryDataset([
-                Sample(
-                    input="Initialize CookingWorld Run with unique layout configurations.", 
-                    target="Success", 
-                    metadata={"seed": current_seed}
-                )
-            ])
-            return Task(
-                dataset=dataset,
-                solver=harness_orchestrator(
-                    environment_factory=CookingWorldEnvironment, 
-                    mechanisms=active_mechanisms, 
-                    max_steps=args.steps,
-                    seed=current_seed
-                ),
-                scorer=harness_scorer()
-            )
-        tasks.append(ablation_task())
+    tasks = create_tasks(args.experiment, active_mechanisms, args.seeds, args.steps)
 
     mechanism_names = [m.name for m in active_mechanisms]
     print("=" * 60)
