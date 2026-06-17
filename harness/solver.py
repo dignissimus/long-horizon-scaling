@@ -1,6 +1,6 @@
 from typing import Any, Callable
 
-from inspect_ai.model import ChatMessageUser, ModelOutput
+from inspect_ai.model import ChatMessageUser, ModelOutput, ChatMessageAssistant
 from inspect_ai.solver import Generate, TaskState, solver, Solver
 
 from harness.actions.types import MechanismState, RegenerateAction, TakeAction
@@ -59,6 +59,8 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                 elif isinstance(res, TakeAction):
                     final_action = res.action_string
             
+            state.messages.append(ChatMessageAssistant(content=final_action))
+
             # TODO: Where is this used? I'm wary of storing this in a dictionary
             mech_state.state_cache["last_action"] = final_action
             
