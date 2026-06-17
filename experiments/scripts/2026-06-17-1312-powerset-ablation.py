@@ -30,8 +30,8 @@ def powerset(iterable):
 def main():
     model = "openrouter/meta-llama/llama-3.2-3b-instruct"
     seeds = 10
-    steps = 300
-    experiment_name = "2026-06-17-1312-powerset-ablation"
+    steps = 1000
+    experiment_name = "2026-06-17-1312-powerset"
     
     # always give valid action support
     base_mechanisms = [M5ActionTemplating]

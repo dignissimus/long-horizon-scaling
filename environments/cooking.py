@@ -9,8 +9,8 @@ class CookingWorldEnvironment(GameEnvironment):
     """
     Wraps the TextWorldExpress 'cookingworld' engine into our standardized GameEnvironment protocol.
     """
-    def __init__(self) -> None:
-        self.env = TextWorldExpressEnv()
+    def __init__(self, step_limit: int = 100) -> None:
+        self.env = TextWorldExpressEnv(envStepLimit=step_limit)
         self.last_valid_actions = []
         self.last_inventory = ""
         self.last_look = ""

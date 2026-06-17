@@ -42,7 +42,7 @@ def create_tasks(experiment_name: str, active_mechanisms: list, seeds: int, step
             return Task(
                 dataset=dataset,
                 solver=harness_orchestrator(
-                    environment_factory=CookingWorldEnvironment, 
+                    environment_factory=lambda: CookingWorldEnvironment(step_limit=steps), 
                     mechanisms=active_mechanisms, 
                     max_steps=steps,
                     seed=current_seed
@@ -66,7 +66,7 @@ def main() -> None:
     parser.add_argument("--m6", action="store_true", help="Enable M6 Planning & Synthesis (Map-then-Act)")
     
     parser.add_argument("--model", type=str, default="openai/gpt-4o", help="Target model provider path")
-    parser.add_argument("--steps", type=int, default=30, help="Maximum execution steps per run")
+    parser.add_argument("--steps", type=int, default=1000, help="Maximum execution steps per run")
     parser.add_argument("--seeds", type=int, default=5, help="Number of unique game seeds to evaluate")
     
     args = parser.parse_args()
