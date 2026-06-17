@@ -9,7 +9,7 @@ from harness.mechanisms.mechanism import Mechanism
 
 
 @solver
-def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30, seed: int) -> Solver:
+def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30, seed: int | None = None) -> Solver:
     """
     Main Inspect solver that runs the middleware-style lifecycle loops across a list of mechanisms.
     """
