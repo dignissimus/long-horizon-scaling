@@ -2,6 +2,7 @@
 import sys
 import itertools
 from inspect_ai import eval
+import json
 
 sys.path.append(".")
 
@@ -52,8 +53,40 @@ def main():
     print(f"Total Tasks:       {len(all_tasks)} (8 Configs x {seeds} Seeds)")
     print("=" * 60)
     
-    # Pass all 80 tasks into a single eval call to run them perfectly in parallel!
-    eval(all_tasks, model=model)
+    eval_logs = eval(all_tasks, model=model)
+    
+    
+    dataset_records = []
+    for log in eval_logs:
+        task_name = log.eval.task
+        
+        for sample in log.samples:
+            meta = sample.metadata if sample.metadata else {}
+            
+            telemetry = meta.get("trajectory_telemetry", [])
+            # TODO: Probably don't want to default to 0? Why would final_score not be set
+            final_score = meta.get("final_score", 0.0)
+            seed = meta.get("seed", None)
+            
+            dataset_records.append({
+                "task": task_name,
+                "seed": seed,
+                "score": final_score,
+                # TODO: Is this an accurate way to find the number of steps?
+                "steps_taken": len(telemetry),
+                # Do I want to store this? What's in telemetry?
+                "trajectory": telemetry
+            })
+            
+    dataset_path = "experiments/powerset_dataset.json"
+    with open(dataset_path, "w") as f:
+        json.dump(dataset_records, f, indent=2)
+        
+    print("=" * 60)
+    print(f"POWERSET COMPLETE! Consolidated dataset saved to:")
+    print(f" -> {dataset_path}")
+    print(f"Total Records Extracted: {len(dataset_records)}")
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()
