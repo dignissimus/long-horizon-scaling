@@ -28,7 +28,7 @@ def powerset(iterable):
 
 # TODO: How do levels work?
 def main():
-    model = "openrouter/meta-llama/llama-3.2-3b-instruct"
+    model = "openrouter/meta-llama/llama-3.2-3b-instruct:free"
     seeds = 10
     steps = 200
     experiment_name = "2026-06-17-1312-powerset"
