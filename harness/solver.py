@@ -8,19 +8,23 @@ from harness.environment.environment import GameEnvironment
 from harness.mechanisms.mechanism import Mechanism, TemporaryMessage
 
 
-def filter_past_temporary_messages(messages: list[ChatMessage]) -> list[ChatMessage]:
-    """Filter out past TemporaryMessages so the Actor only sees the current step's temporary context."""
+def filter_messages_for_generation(messages: list[ChatMessage], drop_history: bool = False) -> list[ChatMessage]:
+    """Filter out past TemporaryMessages, or optionally drop the entire history."""
     filtered_messages = []
     seen_assistant = False
     for msg in reversed(messages):
         if isinstance(msg, ChatMessageAssistant):
             seen_assistant = True
-        
-        if isinstance(msg, TemporaryMessage):
-            if not seen_assistant:
-                filtered_messages.append(msg)
+            
+        if drop_history:
+            if seen_assistant:
+                continue
         else:
-            filtered_messages.append(msg)
+            if isinstance(msg, TemporaryMessage) and seen_assistant:
+                continue
+                
+        filtered_messages.append(msg)
+        
     filtered_messages.reverse()
     return filtered_messages
 
@@ -64,7 +68,8 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                     state = await s(state, generate)
             
             original_messages = state.messages
-            state.messages = filter_past_temporary_messages(state.messages)
+            drop_history = any(m.hides_history() for m in mechanisms)
+            state.messages = filter_messages_for_generation(state.messages, drop_history)
             
             response = await generate(state, **model_kwargs)
             

@@ -41,3 +41,7 @@ class Mechanism:
     def get_solvers(self) -> list[Solver]:
         """Inject native inspect_ai Solvers into the generation pipeline."""
         return []
+
+    def hides_history(self) -> bool:
+        """If True, the orchestrator hides the full chat history from the generation context."""
+        return False

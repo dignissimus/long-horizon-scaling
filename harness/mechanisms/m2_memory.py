@@ -62,3 +62,6 @@ class M2Memory(Mechanism):
 
     def before_next_step(self, env: GameEnvironment, state: MechanismState) -> None:
         pass
+
+    def hides_history(self) -> bool:
+        return True
