@@ -60,7 +60,7 @@ def main():
     print(f"Total Tasks:       {len(all_tasks)}")
     print("=" * 60)
     
-    eval_logs = eval(all_tasks, model=model, max_connections=args.max_connections, max_tasks=args.max_tasks, reasoning_effort="none", display="plain")
+    eval_logs = eval(all_tasks, model=model, model_args={"responses_api": False}, max_connections=args.max_connections, max_tasks=args.max_tasks, reasoning_effort="none", display="plain")
     
     
     dataset_records = []
