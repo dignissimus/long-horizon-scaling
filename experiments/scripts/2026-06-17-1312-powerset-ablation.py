@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
+import os
 import sys
-import itertools
-from inspect_ai import eval
 import json
+import itertools
+from datetime import datetime
+from inspect_ai import eval
 
 sys.path.append(".")
-
-import os
-try:
-    with open("secrets/openrouter-key", "r") as f:
-        os.environ["OPENROUTER_API_KEY"] = f.read().strip()
-except FileNotFoundError:
-    pass
 
 from harness.mechanisms import (
     M2Memory,
@@ -32,7 +27,7 @@ def main():
         with open(key_path, "r") as f:
             os.environ["GEMINI_API_KEY"] = f.read().strip()
 
-    model = "google/gemini-1.5-flash"
+    model = "google/gemini-2.5-flash"
     seeds = 10
     steps = 200
     experiment_name = "2026-06-17-1312-powerset"
@@ -69,27 +64,32 @@ def main():
             meta = sample.metadata if sample.metadata else {}
             
             telemetry = meta.get("trajectory_telemetry", [])
-            # TODO: Probably don't want to default to 0? Why would final_score not be set
-            final_score = meta.get("final_score", 0.0)
-            seed = meta.get("seed", None)
             
             dataset_records.append({
-                "task": task_name,
-                "seed": seed,
-                "score": final_score,
+                "task": log.eval.task,
+                "mechanism_config": log.eval.task.replace("2026-06-17-1312-powerset_", ""),
+                "model": model,
+                "seed": sample.metadata.get("seed", None),
+                # TODO: Not sure we should default to 0
+                "score": meta.get("final_score", 0.0),
                 # TODO: Is this an accurate way to find the number of steps?
                 "steps_taken": len(telemetry),
+                "history": [msg.model_dump() for msg in sample.messages],
                 # Do I want to store this? What's in telemetry?
                 "trajectory": telemetry
             })
             
-    dataset_path = "experiments/powerset_dataset.json"
-    with open(dataset_path, "w") as f:
+    os.makedirs("experiments/experiment-output", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    model_slug = model.split("/")[-1].replace(":", "-")
+    output_path = f"experiments/experiment-output/powerset_dataset_{model_slug}_{timestamp}.json"
+
+    with open(output_path, "w") as f:
         json.dump(dataset_records, f, indent=2)
-        
+
     print("=" * 60)
-    print(f"POWERSET COMPLETE! Consolidated dataset saved to:")
-    print(f" -> {dataset_path}")
+    print("POWERSET COMPLETE! Consolidated dataset saved to:")
+    print(f" -> {output_path}")
     print(f"Total Records Extracted: {len(dataset_records)}")
     print("=" * 60)
 
