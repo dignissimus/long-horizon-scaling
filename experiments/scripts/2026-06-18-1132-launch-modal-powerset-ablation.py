@@ -8,7 +8,7 @@ app = modal.App("cooking-world-ablation")
 
 image = (
     modal.Image.from_registry("nvidia/cuda:12.1.1-devel-ubuntu22.04", add_python="3.12")
-    .apt_install("default-jre", "curl", "git")
+    .apt_install("default-jre", "curl", "git", "build-essential", "ninja-build")
     .pip_install("uv")
     .add_local_file("pyproject.toml", "/root/project/pyproject.toml", copy=True)
     .add_local_file("uv.lock", "/root/project/uv.lock", copy=True)
