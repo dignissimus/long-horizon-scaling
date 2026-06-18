@@ -44,9 +44,9 @@ except ImportError:
 
 sys.argv = [
     "vllm.entrypoints.openai.api_server",
-    "--model", "Qwen/Qwen2.5-3B-Instruct", 
+    "--model", "Qwen/Qwen2.5-7B-Instruct-1M", 
     "--port", "8000",
-    "--max-model-len", "32768"
+    "--max-model-len", "131072"
 ]
 runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
 """
@@ -77,8 +77,8 @@ runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
     subprocess.run(
         [
             "uv", "run", "python", "experiments/scripts/2026-06-17-1312-powerset-ablation.py",
-            "--model", "openai/Qwen/Qwen2.5-3B-Instruct",
-            "--max-connections", "64",
+            "--model", "openai/Qwen/Qwen2.5-7B-Instruct-1M",
+            "--max-connections", "16",
             "--max-tasks", "8"
         ],
         env=env,
