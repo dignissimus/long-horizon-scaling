@@ -61,7 +61,7 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
         
         step_log = []
         for step in range(max_steps):
-            base_prompt = f"Step {step+1}/{max_steps}\nCurrent Observation: {obs}\nWhat is your next action? Respond ONLY with your exact action string and nothing else."
+            base_prompt = f"Current Observation: {obs}\nWhat is your next action? Respond ONLY with your exact action string and nothing else."
             
             for m in mechanisms:
                 base_prompt = m.format_prompt(base_prompt, env, mech_state)
