@@ -27,7 +27,7 @@ def main():
     parser.add_argument("--model", default="google/gemini-2.5-flash")
     parser.add_argument("--max-connections", type=int, default=1)
     parser.add_argument("--max-tasks", type=int, default=1)
-    parser.add_argument("--display", type=str, default="plain", help="Display mode for the eval run (e.g., 'rich' for TUI, 'plain' for logs)")
+    parser.add_argument("--display", type=str, default="plain", help="Display type. Values: full, conversation, rich, plain, log, none (defaults to full).")
     args = parser.parse_args()
 
     key_path = os.path.join("secrets", "gemini-key")
@@ -61,7 +61,8 @@ def main():
     print(f"Total Tasks:       {len(all_tasks)}")
     print("=" * 60)
     
-    eval_logs = eval(all_tasks, model=model, model_args={"responses_api": False}, max_connections=args.max_connections, max_tasks=args.max_tasks, reasoning_effort="none", display=args.display)
+    model_args = {"responses_api": False} if model.startswith("openai/") else {}
+    eval_logs = eval(all_tasks, model=model, model_args=model_args, max_connections=args.max_connections, max_tasks=args.max_tasks, reasoning_effort="none", display=args.display)
     
     
     dataset_records = []
