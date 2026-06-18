@@ -59,6 +59,8 @@ runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
     print("Waiting for vLLM to initialize...")
     import urllib.request
     while True:
+        if vllm_process.poll() is not None:
+            raise RuntimeError("vLLM server crashed during initialization!")
         try:
             req = urllib.request.urlopen("http://localhost:8000/v1/models")
             if req.getcode() == 200:
