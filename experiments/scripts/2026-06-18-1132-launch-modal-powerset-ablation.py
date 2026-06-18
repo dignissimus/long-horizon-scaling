@@ -32,18 +32,41 @@ def run_powerset_ablation():
     
     os.chdir("/root/project")
     
+    vllm_wrapper = """
+import sys
+import runpy
+
+try:
+    from prometheus_fastapi_instrumentator import routing
+    routing.get_route_name = lambda request: "vllm_endpoint"
+except ImportError:
+    pass
+
+sys.argv = [
+    "vllm.entrypoints.openai.api_server",
+    "--model", "Qwen/Qwen2.5-3B-Instruct", 
+    "--port", "8000",
+    "--max-model-len", "32768"
+]
+runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
+"""
+
     print("Starting vLLM server in the background...")
     vllm_process = subprocess.Popen(
-        [
-            "uv", "run", "python", "-m", "vllm.entrypoints.openai.api_server",
-            "--model", "Qwen/Qwen2.5-3B-Instruct", 
-            "--port", "8000",
-            "--max-model-len", "25000"
-        ]
+        ["uv", "run", "python", "-c", vllm_wrapper]
     )
     
-    print("Waiting 60 seconds for vLLM to initialize...")
-    time.sleep(60) 
+    print("Waiting for vLLM to initialize...")
+    import urllib.request
+    while True:
+        try:
+            req = urllib.request.urlopen("http://localhost:8000/v1/models")
+            if req.getcode() == 200:
+                print("vLLM is up and ready!")
+                break
+        except Exception:
+            pass
+        time.sleep(5)
     
     env = os.environ.copy()
     env["OPENAI_API_KEY"] = "sk-fake"
@@ -55,7 +78,7 @@ def run_powerset_ablation():
         [
             "uv", "run", "python", "experiments/scripts/2026-06-17-1312-powerset-ablation.py",
             "--model", "openai/Qwen/Qwen2.5-3B-Instruct",
-            "--max-connections", "10",
+            "--max-connections", "64",
             "--max-tasks", "8"
         ],
         env=env,

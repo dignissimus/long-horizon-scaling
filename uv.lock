@@ -1667,6 +1667,8 @@ dependencies = [
     { name = "modal" },
     { name = "openai" },
     { name = "textworld-express" },
+    { name = "vllm", version = "0.22.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'darwin'" },
+    { name = "vllm", version = "0.23.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin'" },
 ]
 
 [package.optional-dependencies]
@@ -1686,6 +1688,7 @@ requires-dist = [
     { name = "modal", specifier = ">=1.5.0" },
     { name = "openai", specifier = ">=2.42.0" },
     { name = "textworld-express", specifier = ">=1.1.0" },
+    { name = "vllm", specifier = ">=0.22.1" },
     { name = "vllm", marker = "extra == 'cloud'", specifier = ">=0.22.1" },
 ]
 provides-extras = ["cloud"]
