@@ -23,8 +23,8 @@ def m2_memory_solver(mechanism: 'M2Memory'):
             f"{plan_context}"
             f"Here is your current memory scratchpad:\n{mechanism.memory}\n\n"
             "Based on this new information, please provide an updated version of your memory scratchpad. "
-            "It should be a concise summary of what you have done so far, what your current sub-goal is, and any important details you need to remember. "
-            "Output ONLY the updated memory text."
+            "Remember information, discoveries, and sub-goals that you believe will be useful for completing your task. "
+            "Output the updated memory text."
         )
 
         temp_state = TaskState(
