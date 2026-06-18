@@ -5,16 +5,15 @@ from inspect_ai.model import ChatMessageUser, ChatMessageAssistant
 from harness.actions.types import MechanismState
 from harness.environment.environment import GameEnvironment
 from harness.mechanisms.mechanism import Mechanism, TemporaryMessage
+from harness.solver import filter_messages_for_generation
 
 @solver
 def m6_planning_solver():
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        current_prompt = state.messages[-1].text
         last_plan = state.metadata.get("m6_last_plan", "No previous plan.")
         
         planning_instruction = (
             f"Here is your previous plan:\n{last_plan}\n\n"
-            f"Here is the current situation:\n{current_prompt}\n\n"
             "Please synthesize the situation and create a plan. Output your response exactly in this format:\n"
             "KNOWN: [what you know about the environment]\n"
             "HAVE: [what is in your inventory]\n"
@@ -22,12 +21,16 @@ def m6_planning_solver():
             "PLAN: [your step-by-step plan for the next 3 actions]"
         )
 
+        drop_history = state.metadata.get("drop_history", False)
+        filtered_messages = filter_messages_for_generation(state.messages, drop_history)
+        filtered_messages.append(ChatMessageUser(content=planning_instruction))
+
         temp_state = TaskState(
             model="planning",
             sample_id="plan",
             epoch=1,
             input=[],
-            messages=[ChatMessageUser(content=planning_instruction)]
+            messages=filtered_messages
         )
 
         response = await generate(temp_state)
@@ -41,22 +44,24 @@ def m6_planning_solver():
 @solver
 def m6_planning_cot_solver():
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        current_prompt = state.messages[-1].text
         # TODO: Don't store in metadata
         last_plan = state.metadata.get("m6_last_plan", "No previous plan.")
         
         cot_instruction = (
             f"Here is your previous plan:\n{last_plan}\n\n"
-            f"Here is the current situation:\n{current_prompt}\n\n"
             "Before devising a formal plan, please think step-by-step about what you know, what you have, and what your ultimate goal should be. Output ONLY your reasoning."
         )
+
+        drop_history = state.metadata.get("drop_history", False)
+        filtered_messages = filter_messages_for_generation(state.messages, drop_history)
+        filtered_messages.append(ChatMessageUser(content=cot_instruction))
 
         temp_state = TaskState(
             model="planning",
             sample_id="plan",
             epoch=1,
             input=[],
-            messages=[ChatMessageUser(content=cot_instruction)]
+            messages=filtered_messages
         )
 
         response1 = await generate(temp_state)

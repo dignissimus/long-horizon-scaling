@@ -9,18 +9,23 @@ from harness.mechanisms.mechanism import Mechanism, TemporaryMessage
 
 
 def filter_messages_for_generation(messages: list[ChatMessage], drop_history: bool = False) -> list[ChatMessage]:
-    """Filter out past TemporaryMessages, or optionally drop the entire history."""
+    """Filter out past TemporaryMessages, or optionally keep only the most recent turn's history."""
     filtered_messages = []
-    seen_assistant = False
+    assistant_count = 0
     for msg in reversed(messages):
         if isinstance(msg, ChatMessageAssistant):
-            seen_assistant = True
+            assistant_count += 1
             
         if drop_history:
-            if seen_assistant:
+            # Retain exactly ONE previous turn so the model sees the previous observation and action,
+            # but drop anything older than that (assistant_count > 1).
+            if assistant_count > 1:
+                continue
+            # Scrub TemporaryMessages from the previous turn just like standard mode
+            if isinstance(msg, TemporaryMessage) and assistant_count > 0:
                 continue
         else:
-            if isinstance(msg, TemporaryMessage) and seen_assistant:
+            if isinstance(msg, TemporaryMessage) and assistant_count > 0:
                 continue
                 
         filtered_messages.append(msg)
@@ -63,12 +68,14 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
             # Probably? For consistency
             state.messages.append(ChatMessageUser(content=base_prompt))
             
+            drop_history = any(m.hides_history() for m in mechanisms)
+            state.metadata["drop_history"] = drop_history
+            
             for m in mechanisms:
                 for s in m.get_solvers():
                     state = await s(state, generate)
             
             original_messages = state.messages
-            drop_history = any(m.hides_history() for m in mechanisms)
             state.messages = filter_messages_for_generation(state.messages, drop_history)
             
             response = await generate(state, **model_kwargs)
