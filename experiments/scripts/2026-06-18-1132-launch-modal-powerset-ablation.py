@@ -36,7 +36,7 @@ def run_powerset_ablation():
     vllm_process = subprocess.Popen(
         [
             "uv", "run", "python", "-m", "vllm.entrypoints.openai.api_server",
-            "--model", "meta-llama/Llama-3.2-3B-Instruct", 
+            "--model", "Qwen/Qwen2.5-3B-Instruct", 
             "--port", "8000",
             "--max-model-len", "25000"
         ]
@@ -54,7 +54,7 @@ def run_powerset_ablation():
     subprocess.run(
         [
             "uv", "run", "python", "experiments/scripts/2026-06-17-1312-powerset-ablation.py",
-            "--model", "openai/meta-llama/Llama-3.2-3B-Instruct",
+            "--model", "openai/Qwen/Qwen2.5-3B-Instruct",
             "--max-connections", "10",
             "--max-tasks", "8"
         ],
