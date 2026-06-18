@@ -23,7 +23,7 @@ results_volume = modal.Volume.from_name("cooking-world-results", create_if_missi
     gpu="A100", 
     timeout=43200, 
     volumes={"/root/results": results_volume}, 
-    secrets=[]
+    secrets=[modal.Secret.from_name("my-huggingface-secret")]
 )
 def run_powerset_ablation():
     import subprocess
@@ -54,7 +54,7 @@ def run_powerset_ablation():
     subprocess.run(
         [
             "uv", "run", "python", "experiments/scripts/2026-06-17-1312-powerset-ablation.py",
-            "--model", "meta-llama/Llama-3.2-3B-Instruct",
+            "--model", "openai/meta-llama/Llama-3.2-3B-Instruct",
             "--max-connections", "10",
             "--max-tasks", "8"
         ],
