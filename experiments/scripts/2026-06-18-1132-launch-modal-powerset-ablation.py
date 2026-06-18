@@ -13,7 +13,6 @@ image = (
     .add_local_file("pyproject.toml", "/root/project/pyproject.toml", copy=True)
     .add_local_file("uv.lock", "/root/project/uv.lock", copy=True)
     .run_commands("cd /root/project && uv sync --frozen --all-extras")
-    .run_commands("cd /root/project && uv run pip install -U vllm")
     .add_local_dir(".", remote_path="/root/project", ignore=["**/.venv/**", "**/__pycache__/**", "**/.git/**"])
 )
 

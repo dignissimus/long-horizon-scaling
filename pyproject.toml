@@ -9,12 +9,11 @@ dependencies = [
     "modal>=1.5.0",
     "openai>=2.42.0",
     "textworld-express>=1.1.0",
-    "vllm>=0.22.1",
 ]
 
 [project.optional-dependencies]
 cloud = [
-    "vllm>=0.22.1",
+    "vllm",
 ]
 
 [dependency-groups]
