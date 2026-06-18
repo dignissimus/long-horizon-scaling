@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import itertools
+import argparse
 from datetime import datetime
 from inspect_ai import eval
 
@@ -22,12 +23,18 @@ def powerset(iterable):
     return itertools.chain.from_iterable(itertools.combinations(s, r) for r in range(len(s)+1))
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default="google/gemini-2.5-flash")
+    parser.add_argument("--max-connections", type=int, default=1)
+    parser.add_argument("--max-tasks", type=int, default=1)
+    args = parser.parse_args()
+
     key_path = os.path.join("secrets", "gemini-key")
     if os.path.exists(key_path):
         with open(key_path, "r") as f:
             os.environ["GEMINI_API_KEY"] = f.read().strip()
 
-    model = "google/gemini-2.5-flash"
+    model = args.model
     seeds = 10
     steps = 200
     experiment_name = "2026-06-17-1312-powerset"
@@ -53,7 +60,7 @@ def main():
     print(f"Total Tasks:       {len(all_tasks)}")
     print("=" * 60)
     
-    eval_logs = eval(all_tasks, model=model, max_connections=1, max_tasks=1, reasoning_effort="none")
+    eval_logs = eval(all_tasks, model=model, max_connections=args.max_connections, max_tasks=args.max_tasks, reasoning_effort="none", display="plain")
     
     
     dataset_records = []
