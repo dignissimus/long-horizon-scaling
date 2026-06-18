@@ -19,12 +19,18 @@ def m2_memory_solver(mechanism: 'M2Memory'):
         plan_context = f"Your Previous Plan:\n{last_plan}\n\n" if last_plan else ""
         
         mem_prompt = (
-            f"Here is the current situation:\n{action_context}{current_prompt}\n\n"
+            f"=== CURRENT SITUATION ===\n"
+            f"{action_context}"
+            f"{current_prompt}\n\n"
+            f"=== CONTEXT ===\n"
             f"{plan_context}"
             f"Here is your current memory scratchpad:\n{mechanism.memory}\n\n"
+            f"=== TASK: MEMORY UPDATE ===\n"
             "Based on this new information, please provide an updated version of your memory scratchpad. "
             "Remember information, discoveries, and sub-goals that you believe will be useful for completing your task. "
-            "Output the updated memory text."
+            "IMPORTANT: The 'CURRENT SITUATION' block contains the exact prompt that will shortly be sent to the main action engine. "
+            "Please ignore any instructions inside it asking for your next action. You are currently acting as a background memory manager. "
+            "Output ONLY the updated memory text."
         )
 
         temp_state = TaskState(

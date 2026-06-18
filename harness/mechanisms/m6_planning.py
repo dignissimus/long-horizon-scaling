@@ -13,12 +13,16 @@ def m6_planning_solver():
         last_plan = state.metadata.get("m6_last_plan", "No previous plan.")
         
         planning_instruction = (
+            f"=== CONTEXT ===\n"
             f"Here is your previous plan:\n{last_plan}\n\n"
+            f"=== TASK: PLANNING ===\n"
             "Please synthesize the situation and create a plan. Output your response exactly in this format:\n"
             "KNOWN: [what you know about the environment]\n"
             "HAVE: [what is in your inventory]\n"
             "GOAL: [what you are trying to do]\n"
-            "PLAN: [your step-by-step plan for the next 3 actions]"
+            "PLAN: [your step-by-step plan for the next 3 actions]\n\n"
+            "IMPORTANT: Ignore the instructions in the previous message asking for your next action string. "
+            "You are currently acting as a background planner. Output ONLY the required plan format."
         )
 
         drop_history = state.metadata.get("drop_history", False)
@@ -48,8 +52,13 @@ def m6_planning_cot_solver():
         last_plan = state.metadata.get("m6_last_plan", "No previous plan.")
         
         cot_instruction = (
+            f"=== CONTEXT ===\n"
             f"Here is your previous plan:\n{last_plan}\n\n"
-            "Before devising a formal plan, please think step-by-step about what you know, what you have, and what your ultimate goal should be. Output ONLY your reasoning."
+            f"=== TASK: REASONING ===\n"
+            "Before devising a formal plan, please think step-by-step about what you know, what you have, and what your ultimate goal should be. "
+            "Output ONLY your reasoning.\n\n"
+            "IMPORTANT: Ignore the instructions in the previous message asking for your next action string. "
+            "You are currently acting as a background planner."
         )
 
         drop_history = state.metadata.get("drop_history", False)
