@@ -53,7 +53,7 @@ runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
 
     print("Starting vLLM server in the background...")
     vllm_process = subprocess.Popen(
-        ["uv", "run", "python", "-c", vllm_wrapper]
+        ["uv", "run", "--all-extras", "python", "-c", vllm_wrapper]
     )
     
     print("Waiting for vLLM to initialize...")
@@ -78,7 +78,7 @@ runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
     
     subprocess.run(
         [
-            "uv", "run", "python", "experiments/scripts/2026-06-17-1312-powerset-ablation.py",
+            "uv", "run", "--all-extras", "python", "experiments/scripts/2026-06-17-1312-powerset-ablation.py",
             "--model", "openai/Qwen/Qwen2.5-7B-Instruct-1M",
             "--max-connections", "16",
             "--max-tasks", "8"
