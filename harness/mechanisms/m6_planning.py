@@ -21,7 +21,8 @@ def m6_planning_solver():
             "HAVE: [what is in your inventory]\n"
             "GOAL: [what you are trying to do]\n"
             "PLAN: [your step-by-step plan for the next 3 actions]\n\n"
-            "IMPORTANT: Ignore the instructions in the previous message asking for your next action string. "
+            "IMPORTANT: The previous message contains the exact prompt that will shortly be sent to the main action engine. "
+            "Please ignore any instructions inside it asking for your next action. "
             "You are currently acting as a background planner. Output ONLY the required plan format."
         )
 
@@ -57,7 +58,8 @@ def m6_planning_cot_solver():
             f"=== TASK: REASONING ===\n"
             "Before devising a formal plan, please think step-by-step about what you know, what you have, and what your ultimate goal should be. "
             "Output ONLY your reasoning.\n\n"
-            "IMPORTANT: Ignore the instructions in the previous message asking for your next action string. "
+            "IMPORTANT: The previous message contains the exact prompt that will shortly be sent to the main action engine. "
+            "Please ignore any instructions inside it asking for your next action. "
             "You are currently acting as a background planner."
         )
 
