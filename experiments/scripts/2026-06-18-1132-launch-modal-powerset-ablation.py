@@ -46,8 +46,7 @@ sys.argv = [
     "vllm.entrypoints.openai.api_server",
     "--model", "Qwen/Qwen2.5-3B-Instruct", 
     "--port", "8000",
-    "--max-model-len", "131072",
-    "--rope-scaling", '{"type":"dynamic", "factor":4.0}'
+    "--max-model-len", "32768"
 ]
 runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
 """
