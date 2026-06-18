@@ -26,9 +26,13 @@ def powerset(iterable):
     s = list(iterable)
     return itertools.chain.from_iterable(itertools.combinations(s, r) for r in range(len(s)+1))
 
-# TODO: How do levels work?
 def main():
-    model = "openrouter/meta-llama/llama-3.2-3b-instruct:free"
+    key_path = os.path.join("secrets", "gemini-api-key")
+    if os.path.exists(key_path):
+        with open(key_path, "r") as f:
+            os.environ["GEMINI_API_KEY"] = f.read().strip()
+
+    model = "google/gemini-1.5-flash"
     seeds = 10
     steps = 200
     experiment_name = "2026-06-17-1312-powerset"
