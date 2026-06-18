@@ -1,5 +1,6 @@
 logs
 secrets
+local-secrets
 
 # Python-generated files
 __pycache__/
