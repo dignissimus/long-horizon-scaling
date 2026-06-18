@@ -42,6 +42,21 @@ try:
 except ImportError:
     pass
 
+# Workaround for the Qwen dual_chunk_attention_config bug with FlashAttention
+import vllm.config
+old_init = vllm.config.ModelConfig.__init__
+def new_init(self, *args, **kwargs):
+    old_init(self, *args, **kwargs)
+    if hasattr(self.hf_config, "dual_chunk_attention_config"):
+        delattr(self.hf_config, "dual_chunk_attention_config")
+    if hasattr(self.hf_config, "dual_chunk_attention"):
+        delattr(self.hf_config, "dual_chunk_attention")
+    if hasattr(self.hf_text_config, "dual_chunk_attention_config"):
+        delattr(self.hf_text_config, "dual_chunk_attention_config")
+    if hasattr(self.hf_text_config, "dual_chunk_attention"):
+        delattr(self.hf_text_config, "dual_chunk_attention")
+vllm.config.ModelConfig.__init__ = new_init
+
 sys.argv = [
     "vllm.entrypoints.openai.api_server",
     "--model", "Qwen/Qwen2.5-7B-Instruct-1M", 
