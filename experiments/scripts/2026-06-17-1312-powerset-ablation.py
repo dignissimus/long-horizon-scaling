@@ -27,7 +27,7 @@ def powerset(iterable):
     return itertools.chain.from_iterable(itertools.combinations(s, r) for r in range(len(s)+1))
 
 def main():
-    key_path = os.path.join("secrets", "gemini-api-key")
+    key_path = os.path.join("secrets", "gemini-key")
     if os.path.exists(key_path):
         with open(key_path, "r") as f:
             os.environ["GEMINI_API_KEY"] = f.read().strip()
