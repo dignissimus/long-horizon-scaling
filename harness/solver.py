@@ -1,11 +1,28 @@
 from typing import Any, Callable
 
-from inspect_ai.model import ChatMessageUser, ModelOutput, ChatMessageAssistant
+from inspect_ai.model import ChatMessageUser, ModelOutput, ChatMessageAssistant, ChatMessage
 from inspect_ai.solver import Generate, TaskState, solver, Solver
 
 from harness.actions.types import MechanismState, RegenerateAction, TakeAction
 from harness.environment.environment import GameEnvironment
-from harness.mechanisms.mechanism import Mechanism
+from harness.mechanisms.mechanism import Mechanism, TemporaryMessage
+
+
+def filter_past_temporary_messages(messages: list[ChatMessage]) -> list[ChatMessage]:
+    """Filter out past TemporaryMessages so the Actor only sees the current step's temporary context."""
+    filtered_messages = []
+    seen_assistant = False
+    for msg in reversed(messages):
+        if isinstance(msg, ChatMessageAssistant):
+            seen_assistant = True
+        
+        if isinstance(msg, TemporaryMessage):
+            if not seen_assistant:
+                filtered_messages.append(msg)
+        else:
+            filtered_messages.append(msg)
+    filtered_messages.reverse()
+    return filtered_messages
 
 
 @solver
@@ -46,7 +63,13 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                 for s in m.get_solvers():
                     state = await s(state, generate)
             
+            original_messages = state.messages
+            state.messages = filter_past_temporary_messages(state.messages)
+            
             response = await generate(state, **model_kwargs)
+            
+            state.messages = original_messages
+            
             action_candidate = response.output.completion.strip("'\" \n\t")
             
             final_action = action_candidate
@@ -65,6 +88,7 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
 
             # TODO: Where is this used? I'm wary of storing this in a dictionary
             mech_state.state_cache["last_action"] = final_action
+            state.metadata["last_action"] = final_action
             
             for m in mechanisms:
                 m.before_next_step(env, mech_state)

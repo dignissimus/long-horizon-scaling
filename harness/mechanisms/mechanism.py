@@ -3,6 +3,11 @@ from inspect_ai.solver import Solver
 
 from harness.actions.types import ActionResult, MechanismState, TakeAction
 from harness.environment.environment import GameEnvironment
+from inspect_ai.model import ChatMessageUser
+
+class TemporaryMessage(ChatMessageUser):
+    """A user message that is stripped from the history at the end of the step."""
+    pass
 
 
 class Mechanism:
