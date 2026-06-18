@@ -26,31 +26,29 @@ def create_tasks(experiment_name: str, active_mechanisms: list, seeds: int, step
     else:
         config_name = "_".join([m.__class__.__name__[:2] for m in active_mechanisms]).lower()
 
-    tasks = []
+    samples = []
     for idx in range(seeds):
         current_seed = 1000 + idx
-        
-        @task(name=f"{experiment_name}_{config_name}_seed_{current_seed}")
-        def ablation_task() -> Task:
-            dataset = MemoryDataset([
-                Sample(
-                    input="Initialize CookingWorld Run with unique layout configurations.", 
-                    target="Success", 
-                    metadata={"seed": current_seed}
-                )
-            ])
-            return Task(
-                dataset=dataset,
-                solver=harness_orchestrator(
-                    environment_factory=lambda: CookingWorldEnvironment(step_limit=steps), 
-                    mechanisms=active_mechanisms, 
-                    max_steps=steps,
-                    seed=current_seed
-                ),
-                scorer=harness_scorer()
-            )
-        tasks.append(ablation_task())
-    return tasks
+        samples.append(Sample(
+            input="Initialize CookingWorld Run with unique layout configurations.", 
+            target="Success", 
+            metadata={"seed": current_seed}
+        ))
+
+    @task(name=f"{experiment_name}_{config_name}")
+    def ablation_task() -> Task:
+        dataset = MemoryDataset(samples)
+        return Task(
+            dataset=dataset,
+            solver=harness_orchestrator(
+                environment_factory=lambda: CookingWorldEnvironment(step_limit=steps), 
+                mechanisms=active_mechanisms, 
+                max_steps=steps
+            ),
+            scorer=harness_scorer()
+        )
+    
+    return [ablation_task()]
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Complete Ablation CLI for Long-Horizon Game Agents.")

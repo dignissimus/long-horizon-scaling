@@ -35,13 +35,14 @@ def filter_messages_for_generation(messages: list[ChatMessage], drop_history: bo
 
 
 @solver
-def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30, seed: int | None = None) -> Solver:
+def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30) -> Solver:
     """
     Main Inspect solver that runs the middleware-style lifecycle loops across a list of mechanisms.
     """
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        seed = state.metadata.get("seed")
         if seed is None:
-            raise ValueError("harness_orchestrator requires a 'seed' argument. It cannot be None.")
+            raise ValueError("harness_orchestrator requires a 'seed' to be set in state.metadata.")
         
         env: GameEnvironment = environment_factory()
         obs, env_info = env.reset(seed=seed)

@@ -50,11 +50,11 @@ def main():
     print("LAUNCHING MASSIVELY PARALLEL POWERSET MATRIX")
     print(f"Model Target:      {model}")
     print(f"Max Run Steps:     {steps}")
-    print(f"Evaluation Seeds:  {seeds}")
-    print(f"Total Tasks:       {len(all_tasks)} (8 Configs x {seeds} Seeds)")
+    print(f"Evaluation Seeds:  {seeds} (Samples per Config)")
+    print(f"Total Tasks:       {len(all_tasks)}")
     print("=" * 60)
     
-    eval_logs = eval(all_tasks, model=model, max_tasks=10)
+    eval_logs = eval(all_tasks, model=model, max_tasks=2)
     
     
     dataset_records = []
