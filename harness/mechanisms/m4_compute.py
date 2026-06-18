@@ -6,10 +6,10 @@ from harness.mechanisms.mechanism import Mechanism
 
 def explicit_cot_solver() -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        state.messages.append(ChatMessageUser(content="Before taking your action, please think step-by-step about what you should do next. Output ONLY your reasoning process and do not include the action itself."))
+        state.messages.append(ChatMessageUser(content="Before taking your action, please think step-by-step about what you should do next. Output ONLY your reasoning process and do not include the action itself. You may use <think> tags in your reasoning."))
         response = await generate(state)
         state.messages.append(ChatMessageAssistant(content=response.output.completion))
-        state.messages.append(ChatMessageUser(content="Based on your reasoning, what is your next action? Do NOT wrap the action in quotes."))
+        state.messages.append(ChatMessageUser(content="Based on your reasoning, what is your next action? Do NOT wrap the action in quotes. IMPORTANT: Your output will be executed verbatim by the game engine. Do NOT use <think> tags or chain-of-thought."))
         return state
     return solve
 

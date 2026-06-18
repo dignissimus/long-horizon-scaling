@@ -23,7 +23,8 @@ def m6_planning_solver():
             "PLAN: [your step-by-step plan for the next 3 actions]\n\n"
             "IMPORTANT: The previous message contains the exact prompt that will shortly be sent to the main action engine. "
             "Please ignore any instructions inside it asking for your next action. "
-            "You are currently acting as a background planner. Output ONLY the required plan format."
+            "You are currently acting as a background planner. Output ONLY the required plan format. Your output will be stored verbatim. "
+            "Do NOT use <think> tags or chain-of-thought."
         )
 
         drop_history = state.metadata.get("drop_history", False)
@@ -60,7 +61,8 @@ def m6_planning_cot_solver():
             "Output ONLY your reasoning.\n\n"
             "IMPORTANT: The previous message contains the exact prompt that will shortly be sent to the main action engine. "
             "Please ignore any instructions inside it asking for your next action. "
-            "You are currently acting as a background planner."
+            "You are currently acting as a background planner. Your output will be stored verbatim. "
+            "You may use <think> tags in your reasoning."
         )
 
         drop_history = state.metadata.get("drop_history", False)
@@ -84,7 +86,8 @@ def m6_planning_cot_solver():
             "KNOWN: [what you know about the environment]\n"
             "HAVE: [what is in your inventory]\n"
             "GOAL: [what you are trying to do]\n"
-            "PLAN: [your step-by-step plan for the next 3 actions]"
+            "PLAN: [your step-by-step plan for the next 3 actions]\n\n"
+            "IMPORTANT: Your output will be stored verbatim. Do NOT use <think> tags or chain-of-thought."
         )
 
         temp_state2 = TaskState(

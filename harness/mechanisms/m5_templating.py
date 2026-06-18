@@ -16,7 +16,8 @@ class M5ActionTemplating(Mechanism):
             constraint = (
                 f"\n--- [M5 Admissible Actions] ---\n"
                 f"You MUST choose your exact action from the following list: {actions_list}\n"
-                f"Output ONLY ONE action per turn. Output ONLY the action string. Do NOT add conversational text like 'I will' or any prefixes/suffixes. Do NOT wrap the action in quotes."
+                f"Output ONLY ONE action per turn. Output ONLY the action string. Do NOT add conversational text like 'I will' or any prefixes/suffixes. Do NOT wrap the action in quotes.\n"
+                f"IMPORTANT: Your output will be passed verbatim into the game parser. Do NOT use <think> tags or chain-of-thought."
             )
             return current_prompt + constraint
         return current_prompt
