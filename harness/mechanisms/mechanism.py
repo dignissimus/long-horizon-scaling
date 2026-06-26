@@ -26,9 +26,17 @@ class Mechanism:
         """Appends static/deterministic information to the user prompt string."""
         return current_prompt
 
+    def format_probe_prompt(self, current_prompt: str, env: GameEnvironment, state: MechanismState) -> str:
+        """Formats the prompt specifically for offline probes. Defaults to format_prompt unless overridden."""
+        return self.format_prompt(current_prompt, env, state)
+
     async def augment_prompt_async(self, current_prompt: str, env: GameEnvironment, state: MechanismState, generate_fn: Callable) -> str:
         """Asynchronously executes secondary LLM calls to build plans, thoughts, or reflections."""
         return current_prompt
+
+    async def augment_probe_prompt_async(self, current_prompt: str, env: GameEnvironment, state: MechanismState, generate_fn: Callable) -> str:
+        """Asynchronously formats the probe prompt. Defaults to augment_prompt_async unless overridden."""
+        return await self.augment_prompt_async(current_prompt, env, state, generate_fn)
 
     def after_generation(self, model_response: str, env: GameEnvironment, state: MechanismState) -> ActionResult:
         """Inspects the generated model output and chooses to pass it through or force a retry."""

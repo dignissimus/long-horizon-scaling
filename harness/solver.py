@@ -70,13 +70,15 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
         step_log = []
         for step in range(max_steps):
             base_prompt = f"Current Observation: {obs}\nWhat is your next action? Respond ONLY with your exact action string and nothing else."
+            probe_base_prompt = f"Current Observation: {obs}\n"
             
             for m in mechanisms:
                 base_prompt = m.format_prompt(base_prompt, env, mech_state)
+                probe_base_prompt = m.format_probe_prompt(probe_base_prompt, env, mech_state)
             
             for m in mechanisms:
-                # TODO: Probably want to rename to make clear that these typically call the model
                 base_prompt = await m.augment_prompt_async(base_prompt, env, mech_state, generate)
+                probe_base_prompt = await m.augment_probe_prompt_async(probe_base_prompt, env, mech_state, generate)
 
             # TODO: Do we want to always give the model the full step history?
             # Probably? For consistency
@@ -94,11 +96,17 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
             
             filtered_messages = state.messages.copy()
             
+            probe_messages = filtered_messages.copy()
+            if probe_messages and probe_messages[-1].content == base_prompt:
+                probe_messages[-1] = ChatMessageUser(content=probe_base_prompt)
+            else:
+                probe_messages.append(ChatMessageUser(content=probe_base_prompt))
+            
             probe_results = []
             for p in probes:
                 if p.should_run(step):
                     for q in p.get_questions(env):
-                        state.messages = filtered_messages.copy()
+                        state.messages = probe_messages.copy()
                         state.messages.append(ChatMessageUser(content=q.prompt))
                         probe_res = await generate(state, **model_kwargs)
                         

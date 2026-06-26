@@ -21,3 +21,6 @@ class M5ActionTemplating(Mechanism):
             )
             return current_prompt + constraint
         return current_prompt
+
+    def format_probe_prompt(self, current_prompt: str, env: GameEnvironment, state: MechanismState) -> str:
+        return current_prompt
