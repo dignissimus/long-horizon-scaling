@@ -8,6 +8,12 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(script_dir, "../../"))
 sys.path.append(project_root)
 
+# Load API key automatically
+key_path = os.path.join(project_root, "secrets", "gemini-key")
+if os.path.exists(key_path):
+    with open(key_path, "r") as f:
+        os.environ["GEMINI_API_KEY"] = f.read().strip()
+
 from inspect_ai import Task, eval, task
 from inspect_ai.dataset import MemoryDataset, Sample
 
