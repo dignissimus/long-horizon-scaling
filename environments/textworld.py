@@ -15,9 +15,9 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
         self.last_task_desc = ""
         self.current_score = 0.0
 
-    def reset(self, seed: int | None = None) -> tuple[str, dict[str, Any]]:
+    def reset(self, seed: int | None = None, generate_gold_path: bool = False) -> tuple[str, dict[str, Any]]:
         env_seed = seed if seed is not None else 42
-        obs, info = self.env.reset(seed=env_seed, gameName=self.game_name)
+        obs, info = self.env.reset(seed=env_seed, gameName=self.game_name, generateGoldPath=generate_gold_path)
         
         self.last_valid_actions = info.get("validActions", [])
         self.last_inventory = info.get("inventory", "")

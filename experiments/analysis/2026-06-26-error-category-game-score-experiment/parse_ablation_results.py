@@ -74,13 +74,18 @@ def parse_logs(log_dir, eval_prefix):
                 action_sent = step_data.get("action_sent", "")
                 valid_actions = step_data.get("valid_actions", [])
                 
-                # Calculate ALE for this step
                 step_ale = 0
+                drift_completion = ""
+                drift_game_goal = ""
+                
                 for pr in probe_results:
                     if pr.get("probe") == "ale":
                         comp = pr.get("completion", "")
                         gt = pr.get("metadata", {}).get("ground_truth", [])
                         step_ale += calculate_ale(comp, gt)
+                    elif pr.get("probe") == "drift":
+                        drift_completion = pr.get("completion", "")
+                        drift_game_goal = pr.get("metadata", {}).get("game_goal", "")
                         
                 cumulative_ale += step_ale
                 
@@ -108,7 +113,9 @@ def parse_logs(log_dir, eval_prefix):
                     "Step_Interface": step_interface,
                     "Cumulative_Interface": cumulative_interface,
                     "Step_Liveness": step_liveness,
-                    "Cumulative_Liveness": cumulative_liveness
+                    "Cumulative_Liveness": cumulative_liveness,
+                    "Drift_Completion": drift_completion,
+                    "Drift_Game_Goal": drift_game_goal
                 })
                 
     return pd.DataFrame(all_data)

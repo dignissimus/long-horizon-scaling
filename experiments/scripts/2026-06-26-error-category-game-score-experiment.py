@@ -76,9 +76,9 @@ def main():
 
     # Initialize the probes
     probes = [
-        CookingALEProbe(interval=1),
-        CookingDriftProbe(interval=1),
-        CookingIntegrationProbe(interval=1)
+        CookingALEProbe(interval=5),
+        CookingDriftProbe(interval=5),
+        CookingIntegrationProbe(interval=5)
     ]
 
     tasks = []
