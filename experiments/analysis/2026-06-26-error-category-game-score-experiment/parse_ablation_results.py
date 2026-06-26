@@ -8,9 +8,15 @@ import seaborn as sns
 LOG_DIR = "logs/error_probes"
 RESULTS_DIR = "experiments/results/error_probes"
 
+import string
+
 def clean_item_name(item: str) -> str:
-    """Removes 'a', 'an', 'the' and strips whitespace for fuzzy matching."""
+    """Removes 'a', 'an', 'the', strips punctuation, and strips whitespace for fuzzy matching."""
     item = item.lower().strip()
+    
+    # Strip punctuation
+    item = item.translate(str.maketrans('', '', string.punctuation))
+    
     prefixes = ['a ', 'an ', 'the ', 'some ']
     for p in prefixes:
         if item.startswith(p):
@@ -22,6 +28,11 @@ def calculate_ale(completion: str, ground_truth: list[str]) -> int:
     Returns the number of Accepted Local Errors (hallucinations + forgotten items).
     """
     completion_lines = [clean_item_name(line) for line in completion.split('\n') if line.strip()]
+    
+    # If the model successfully utilized the explicit escape hatch, it thinks the list is empty.
+    if len(completion_lines) == 1 and completion_lines[0] == "nothing":
+        completion_lines = []
+        
     cleaned_gt = [clean_item_name(gt) for gt in ground_truth]
     
     errors = 0
