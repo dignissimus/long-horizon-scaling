@@ -3,7 +3,10 @@ import sys
 import os
 import argparse
 
-sys.path.append("/home/sam/Documents/HorizonScaling/long-horizon-scaling")
+# Dynamically append the project root to sys.path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, "../../"))
+sys.path.append(project_root)
 
 from inspect_ai import Task, eval, task
 from inspect_ai.dataset import MemoryDataset, Sample
