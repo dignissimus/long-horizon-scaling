@@ -14,6 +14,11 @@ if os.path.exists(key_path):
     with open(key_path, "r") as f:
         os.environ["GEMINI_API_KEY"] = f.read().strip()
 
+openrouter_path = os.path.join(project_root, "secrets", "openrouter-key")
+if os.path.exists(openrouter_path):
+    with open(openrouter_path, "r") as f:
+        os.environ["OPENROUTER_API_KEY"] = f.read().strip()
+
 from inspect_ai import Task, eval, task
 from inspect_ai.dataset import MemoryDataset, Sample
 
