@@ -106,7 +106,8 @@ runpy.run_module("vllm.entrypoints.openai.api_server", run_name="__main__")
     
     print("Experiment finished. Saving output files to persistent volume...")
     
-    os.system("cp experiments/experiment-output/*.json /root/results/")
+    os.system("cp -r experiments/experiment-output/*.json /root/results/ 2>/dev/null || true")
+    os.system("cp -r logs /root/results/ 2>/dev/null || true")
     
     results_volume.commit()
     print("Files committed to Modal Volume!")
