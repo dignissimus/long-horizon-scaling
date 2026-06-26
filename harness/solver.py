@@ -6,6 +6,7 @@ from inspect_ai.solver import Generate, TaskState, solver, Solver
 from harness.actions.types import MechanismState, RegenerateAction, TakeAction
 from harness.environment.environment import GameEnvironment
 from harness.mechanisms.mechanism import Mechanism, TemporaryMessage
+from harness.probes.base import Probe
 
 
 def filter_messages_for_generation(messages: list[ChatMessage], drop_history: bool = False) -> list[ChatMessage]:
@@ -35,7 +36,7 @@ def filter_messages_for_generation(messages: list[ChatMessage], drop_history: bo
 
 
 @solver
-def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], max_steps: int = 30) -> Solver:
+def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mechanisms: list[Mechanism], probes: list[Probe] = None, max_steps: int = 30) -> Solver:
     """
     Main Inspect solver that runs the middleware-style lifecycle loops across a list of mechanisms.
     """
@@ -44,8 +45,14 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
         if seed is None:
             raise ValueError("harness_orchestrator requires a 'seed' to be set in state.metadata.")
         
+        if probes is None:
+            probes = []
+            
         env: GameEnvironment = environment_factory()
         obs, env_info = env.reset(seed=seed)
+        
+        for p in probes:
+            p.before_next_step("", obs, env)
         
         from inspect_ai.model import ChatMessageSystem
         state.messages = [
@@ -84,6 +91,21 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
             original_messages = state.messages
             state.messages = filter_messages_for_generation(state.messages, drop_history)
             
+            probe_results = []
+            for p in probes:
+                if p.should_run(step):
+                    for q in p.get_questions(env):
+                        state.messages.append(ChatMessageUser(content=q.prompt))
+                        probe_res = await generate(state, **model_kwargs)
+                        state.messages.pop()
+                        probe_results.append({
+                            "probe": p.name,
+                            "question_id": q.id,
+                            "prompt": q.prompt,
+                            "completion": probe_res.output.completion,
+                            "metadata": q.metadata
+                        })
+            
             response = await generate(state, **model_kwargs)
             
             state.messages = original_messages
@@ -113,12 +135,16 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                 
             obs, reward, done, step_info = env.step(final_action)
             
+            for p in probes:
+                p.before_next_step(final_action, obs, env)
+            
             step_log.append({
                 "step": step,
                 "action_sent": final_action,
                 "observation_received": obs,
                 "ground_truth_state": env.format_state(),
-                "reward": reward
+                "reward": reward,
+                "probe_results": probe_results
             })
 
             if done:

@@ -43,3 +43,6 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
 
     def get_valid_actions(self) -> list[str]:
         return self.last_valid_actions
+
+    def get_object_tree(self) -> str:
+        return self.env.getObjectTree()
