@@ -40,13 +40,14 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
     """
     Main Inspect solver that runs the middleware-style lifecycle loops across a list of mechanisms.
     """
+    if probes is None:
+        probes = []
+
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         seed = state.metadata.get("seed")
         if seed is None:
             raise ValueError("harness_orchestrator requires a 'seed' to be set in state.metadata.")
-        
-        if probes is None:
-            probes = []
+
             
         env: GameEnvironment = environment_factory()
         obs, env_info = env.reset(seed=seed)
