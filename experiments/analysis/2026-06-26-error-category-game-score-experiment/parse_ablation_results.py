@@ -72,9 +72,12 @@ def parse_logs(log_dir, eval_prefix):
             seed = sample.get("metadata", {}).get("seed", "unknown")
             step_logs = sample.get("metadata", {}).get("trajectory_telemetry", [])
             
-            cumulative_ale = 0
+            cumulative_ale_spatial = 0
+            cumulative_ale_recipe = 0
             cumulative_interface = 0
             cumulative_liveness = 0
+            cumulative_info_seek = 0
+            has_read_cookbook = 0
             
             action_history = []
             
@@ -85,7 +88,8 @@ def parse_logs(log_dir, eval_prefix):
                 action_sent = step_data.get("action_sent", "")
                 valid_actions = step_data.get("valid_actions", [])
                 
-                step_ale = 0
+                step_ale_spatial = 0
+                step_ale_recipe = 0
                 drift_completion = ""
                 drift_game_goal = ""
                 
@@ -93,12 +97,28 @@ def parse_logs(log_dir, eval_prefix):
                     if pr.get("probe") == "ale":
                         comp = pr.get("completion", "")
                         gt = pr.get("metadata", {}).get("ground_truth", [])
-                        step_ale += calculate_ale(comp, gt)
+                        question_id = pr.get("question_id", pr.get("id", ""))
+                        # Fallback for question_id parsing
+                        # Wait, probe_results dictionaries don't always have 'question_id', they might be stored differently. 
+                        # Inspect saves the id from ProbeQuestion into the probe results? 
+                        # Let's check how we can differentiate. The prompt text or the gt?
+                        # It's better to just check if "recipe" is in the prompt or ID.
+                        # Wait, the id is usually returned in the probe results by our harness!
+                        # The solver.py adds: "probe": probe.name, "id": question.id
+                        q_id = pr.get("id", "")
+                        
+                        errs = calculate_ale(comp, gt)
+                        if q_id.startswith("recipe"):
+                            step_ale_recipe += errs
+                        else:
+                            step_ale_spatial += errs
+                            
                     elif pr.get("probe") == "drift":
                         drift_completion = pr.get("completion", "")
                         drift_game_goal = pr.get("metadata", {}).get("game_goal", "")
                         
-                cumulative_ale += step_ale
+                cumulative_ale_spatial += step_ale_spatial
+                cumulative_ale_recipe += step_ale_recipe
                 
                 # 2. Interface Errors
                 step_interface = 0
@@ -114,17 +134,35 @@ def parse_logs(log_dir, eval_prefix):
                     step_liveness = 1
                 cumulative_liveness += step_liveness
                 
+                # 4. Information Seeking Errors
+                if "read cookbook" in action_sent:
+                    has_read_cookbook = 1
+                    
+                step_info_seek = 0
+                if len(action_history) >= 2:
+                    prev_action = action_history[-2]
+                    curr_action = action_history[-1]
+                    if prev_action.startswith("go ") or prev_action.startswith("open door to"):
+                        if not any(curr_action.startswith(prefix) for prefix in ["look", "examine", "inventory", "read"]):
+                            step_info_seek = 1
+                cumulative_info_seek += step_info_seek
+                
                 all_data.append({
                     "Config": config_name,
                     "Seed": seed,
                     "Step": step_idx,
                     "Score": score,
-                    "Step_ALE": step_ale,
-                    "Cumulative_ALE": cumulative_ale,
+                    "Step_ALE_Spatial": step_ale_spatial,
+                    "Cumulative_ALE_Spatial": cumulative_ale_spatial,
+                    "Step_ALE_Recipe": step_ale_recipe,
+                    "Cumulative_ALE_Recipe": cumulative_ale_recipe,
                     "Step_Interface": step_interface,
                     "Cumulative_Interface": cumulative_interface,
                     "Step_Liveness": step_liveness,
                     "Cumulative_Liveness": cumulative_liveness,
+                    "Step_Info_Seek": step_info_seek,
+                    "Cumulative_Info_Seek": cumulative_info_seek,
+                    "Has_Read_Cookbook": has_read_cookbook,
                     "Drift_Completion": drift_completion,
                     "Drift_Game_Goal": drift_game_goal
                 })
@@ -140,14 +178,24 @@ def plot_results(df: pd.DataFrame, results_dir: str):
 
     sns.set_theme(style="whitegrid")
     
-    # Plot 1: Cumulative ALE Errors over Steps
+    # Plot 1: Cumulative Spatial ALE Errors over Steps
     plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="Step", y="Cumulative_ALE", hue="Config", errorbar="ci")
-    plt.title("Cumulative Accepted Local Errors (ALE) over Horizon")
+    sns.lineplot(data=df, x="Step", y="Cumulative_ALE_Spatial", hue="Config", errorbar="ci")
+    plt.title("Cumulative Spatial ALE (Environment Hallucinations) over Horizon")
     plt.xlabel("Step Index (Proxy for Horizon)")
-    plt.ylabel("Cumulative ALE (Hallucinations & Forgotten Items)")
+    plt.ylabel("Cumulative Spatial ALE")
     plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, "cumulative_ale_vs_step.png"), dpi=300)
+    plt.savefig(os.path.join(results_dir, "cumulative_ale_spatial_vs_step.png"), dpi=300)
+    plt.close()
+
+    # Plot 1b: Cumulative Recipe ALE Errors over Steps
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x="Step", y="Cumulative_ALE_Recipe", hue="Config", errorbar="ci")
+    plt.title("Cumulative Recipe ALE (Cookbook Hallucinations) over Horizon")
+    plt.xlabel("Step Index (Proxy for Horizon)")
+    plt.ylabel("Cumulative Recipe ALE")
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "cumulative_ale_recipe_vs_step.png"), dpi=300)
     plt.close()
     
     # Plot 2: Task Score over Steps
@@ -158,6 +206,26 @@ def plot_results(df: pd.DataFrame, results_dir: str):
     plt.ylabel("Normalized Game Score")
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "score_vs_step.png"), dpi=300)
+    plt.close()
+    
+    # Plot 3: Cumulative Info Seeking Errors over Steps
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x="Step", y="Cumulative_Info_Seek", hue="Config", errorbar="ci")
+    plt.title("Cumulative Information-Seeking Errors over Horizon")
+    plt.xlabel("Step Index (Proxy for Horizon)")
+    plt.ylabel("Cumulative Info-Seeking Errors (Unverified Room Entries)")
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "cumulative_infoseek_vs_step.png"), dpi=300)
+    plt.close()
+    
+    # Plot 4: Cookbook Read Progress
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x="Step", y="Has_Read_Cookbook", hue="Config", errorbar="ci")
+    plt.title("Proportion of Agents that have Read the Cookbook")
+    plt.xlabel("Step Index (Proxy for Horizon)")
+    plt.ylabel("Has Read Cookbook (1=Yes, 0=No)")
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "cookbook_read_vs_step.png"), dpi=300)
     plt.close()
     
     print(f"Data analysis complete. Plots saved to {results_dir}")

@@ -87,6 +87,45 @@ class CookingALEProbe(Probe):
                 ),
                 metadata={"ground_truth": contents}
             ))
+        # 4. Recipe Ingredients Probe
+        recipe_data = tree.get("recipe", [])
+        recipe_ingredients = [item["name"] for item in recipe_data if "name" in item]
+        
+        questions.append(ProbeQuestion(
+            id="recipe_ingredients",
+            prompt=(
+                "Based on your history, list the ingredients required by the recipe in the cookbook. "
+                "Output as a line-separated list containing nothing else. Do not include conversational filler. "
+                "If you have not read the cookbook, output 'nothing'. "
+                "Example output:\nitem one\nitem two"
+            ),
+            metadata={"ground_truth": recipe_ingredients}
+        ))
+        
+        # 5. Recipe Directions Probe
+        recipe_directions = []
+        for item in recipe_data:
+            prep = item.get("preparation", "")
+            name = item.get("name", "")
+            if not name: continue
+            if "sliced" in prep: recipe_directions.append(f"slice the {name}")
+            if "chopped" in prep: recipe_directions.append(f"chop the {name}")
+            if "diced" in prep: recipe_directions.append(f"dice the {name}")
+            if "grilled" in prep: recipe_directions.append(f"grill the {name}")
+            if "roasted" in prep: recipe_directions.append(f"roast the {name}")
+            if "fried" in prep: recipe_directions.append(f"fry the {name}")
+        recipe_directions.append("prepare meal")
+        
+        questions.append(ProbeQuestion(
+            id="recipe_directions",
+            prompt=(
+                "Based on your history, list the preparation directions required by the recipe in the cookbook. "
+                "Output as a line-separated list containing nothing else. Do not include conversational filler. "
+                "If you have not read the cookbook, output 'nothing'. "
+                "Example output:\nslice the apple\nfry the apple"
+            ),
+            metadata={"ground_truth": recipe_directions}
+        ))
             
         return questions
 
