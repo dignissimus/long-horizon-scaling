@@ -20,10 +20,7 @@ class M7WorldModelExternalization(Mechanism):
         if not hasattr(env, 'last_look') or not env.last_look:
             return current_prompt
             
-        try:
-            tree = json.loads(env.get_object_tree())
-        except Exception:
-            return current_prompt
+        tree = env.get_object_tree()
 
         room_match = re.search(r"You are in the (.*?)\.", env.last_look)
         if room_match:
@@ -33,7 +30,8 @@ class M7WorldModelExternalization(Mechanism):
             # If any container in the current room is open while we are here, 
             # we feasibly know its contents forever.
             room_data = tree.get("locations", {}).get(current_room, {})
-            for item_name, item_data in room_data.items():
+            contents_data = room_data.get("contents", {})
+            for item_name, item_data in contents_data.items():
                 if isinstance(item_data, dict) and item_data.get("isContainer") and item_data.get("isOpen"):
                     self.seen_containers.add(ContainerDescription(room_name=current_room, container_name=item_name))
 
@@ -55,9 +53,10 @@ class M7WorldModelExternalization(Mechanism):
         for room in sorted(self.seen_rooms):
             output.append(f"  {room}:")
             room_data = locations_data.get(room, {})
+            contents_data = room_data.get("contents", {})
             
             visible_items_found = False
-            for item_name, item_data in room_data.items():
+            for item_name, item_data in contents_data.items():
                 if isinstance(item_data, dict) and "name" in item_data:
                     visible_items_found = True
                     output.append(f"    - {item_name}")

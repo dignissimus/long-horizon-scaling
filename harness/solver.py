@@ -145,7 +145,8 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                 "observation_received": obs,
                 "ground_truth_state": env.format_state(),
                 "reward": reward,
-                "probe_results": probe_results
+                "probe_results": probe_results,
+                "valid_actions": env.get_valid_actions()
             })
 
             if done:

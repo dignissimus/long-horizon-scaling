@@ -18,26 +18,18 @@ class CookingALEProbe(Probe):
         if room_match:
             current_room = room_match.group(1).strip()
             self.seen_rooms.add(current_room)
-            
-            if action.startswith("open "):
-                container_name = action.replace("open ", "").strip()
-                container = ContainerDescription(room_name=current_room, container_name=container_name)
-                
-                if "revealing" in obs.lower() or "already" in obs.lower() or "locked" in obs.lower():
-                    # It's a door, locked, or already open
-                    pass
-                else:
-                    self.seen_containers.add(container)
+            tree = env.get_object_tree()
+            room_data = tree.get("locations", {}).get(current_room, {})
+            contents_data = room_data.get("contents", {})
+            for item_name, item_data in contents_data.items():
+                if isinstance(item_data, dict) and item_data.get("isContainer") and item_data.get("isOpen"):
+                    self.seen_containers.add(ContainerDescription(room_name=current_room, container_name=item_name))
 
     def get_questions(self, env: GameEnvironment) -> list[ProbeQuestion]:
         questions = []
         
         # Get ground truth from the engine's serialization tree
-        try:
-            tree = json.loads(env.get_object_tree())
-        except Exception:
-            # Fallback if json parsing fails
-            tree = {}
+        tree = env.get_object_tree()
 
         # 1. Inventory Probe
         inventory_items = list(tree.get("inventory", {}).keys())
@@ -55,9 +47,9 @@ class CookingALEProbe(Probe):
         locations_data = tree.get("locations", {})
         for room in self.seen_rooms:
             room_data = locations_data.get(room, {})
-            # Top-level keys are the visible items in the room, excluding structural properties
+            contents_data = room_data.get("contents", {})
             visible_items = []
-            for item_name, item_info in room_data.items():
+            for item_name, item_info in contents_data.items():
                 if isinstance(item_info, dict) and "name" in item_info:
                     visible_items.append(item_name)
                     
@@ -75,7 +67,8 @@ class CookingALEProbe(Probe):
         # 3. Container Probes
         for container in self.seen_containers:
             room_data = locations_data.get(container.room_name, {})
-            container_data = room_data.get(container.container_name, {})
+            room_contents = room_data.get("contents", {})
+            container_data = room_contents.get(container.container_name, {})
             
             contents = []
             if container_data and isinstance(container_data, dict):
