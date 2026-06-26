@@ -38,6 +38,7 @@ class CookingALEProbe(Probe):
             prompt=(
                 "Based on your history, list the items currently in your inventory. "
                 "Output as a line-separated list containing nothing else. Do not include conversational filler. "
+                "If there is nothing, output 'nothing'. "
                 "Example output:\nitem one\nitem two"
             ),
             metadata={"ground_truth": inventory_items}
@@ -59,6 +60,7 @@ class CookingALEProbe(Probe):
                     f"Based on your history, list the visible items in the {room}. "
                     "Do not include items inside ANY containers, whether open or closed. "
                     "Output as a line-separated list containing nothing else. Do not include conversational filler. "
+                    "If there is nothing, output 'nothing'. "
                     "Example output:\nitem one\nitem two"
                 ),
                 metadata={"ground_truth": visible_items}
@@ -80,6 +82,7 @@ class CookingALEProbe(Probe):
                 prompt=(
                     f"Based on your history, list the items inside the {container.container_name} located in the {container.room_name}. "
                     "Output as a line-separated list containing nothing else. Do not include conversational filler. "
+                    "If there is nothing, output 'nothing'. "
                     "Example output:\nitem one\nitem two"
                 ),
                 metadata={"ground_truth": contents}
