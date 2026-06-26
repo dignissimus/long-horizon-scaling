@@ -92,13 +92,16 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
             original_messages = state.messages
             state.messages = filter_messages_for_generation(state.messages, drop_history)
             
+            filtered_messages = state.messages.copy()
+            
             probe_results = []
             for p in probes:
                 if p.should_run(step):
                     for q in p.get_questions(env):
+                        state.messages = filtered_messages.copy()
                         state.messages.append(ChatMessageUser(content=q.prompt))
                         probe_res = await generate(state, **model_kwargs)
-                        state.messages.pop()
+                        
                         probe_results.append({
                             "probe": p.name,
                             "question_id": q.id,
@@ -107,6 +110,7 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
                             "metadata": q.metadata
                         })
             
+            state.messages = filtered_messages.copy()
             response = await generate(state, **model_kwargs)
             
             state.messages = original_messages

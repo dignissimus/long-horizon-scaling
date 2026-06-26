@@ -62,11 +62,17 @@ def parse_logs(log_dir, eval_prefix):
             step_logs = sample.get("metadata", {}).get("trajectory_telemetry", [])
             
             cumulative_ale = 0
+            cumulative_interface = 0
+            cumulative_liveness = 0
+            
+            action_history = []
             
             for step_data in step_logs:
                 step_idx = step_data.get("step", 0)
                 score = step_data.get("reward", 0.0)
                 probe_results = step_data.get("probe_results", [])
+                action_sent = step_data.get("action_sent", "")
+                valid_actions = step_data.get("valid_actions", [])
                 
                 # Calculate ALE for this step
                 step_ale = 0
@@ -78,13 +84,31 @@ def parse_logs(log_dir, eval_prefix):
                         
                 cumulative_ale += step_ale
                 
+                # 2. Interface Errors
+                step_interface = 0
+                if action_sent and valid_actions and action_sent not in valid_actions:
+                    step_interface = 1
+                cumulative_interface += step_interface
+                
+                # 3. Liveness Errors (State-Action Attractor proxy)
+                action_history.append(action_sent)
+                step_liveness = 0
+                if len(action_history) >= 4 and len(set(action_history[-4:])) == 1:
+                    # Repeating the exact same action 4 times in a row
+                    step_liveness = 1
+                cumulative_liveness += step_liveness
+                
                 all_data.append({
                     "Config": config_name,
                     "Seed": seed,
                     "Step": step_idx,
                     "Score": score,
                     "Step_ALE": step_ale,
-                    "Cumulative_ALE": cumulative_ale
+                    "Cumulative_ALE": cumulative_ale,
+                    "Step_Interface": step_interface,
+                    "Cumulative_Interface": cumulative_interface,
+                    "Step_Liveness": step_liveness,
+                    "Cumulative_Liveness": cumulative_liveness
                 })
                 
     return pd.DataFrame(all_data)
