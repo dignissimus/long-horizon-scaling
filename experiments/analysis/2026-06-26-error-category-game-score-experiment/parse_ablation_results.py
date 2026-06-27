@@ -48,42 +48,61 @@ def calculate_ale(completion: str, ground_truth: list[str]) -> int:
             
     return errors
 
+from inspect_ai.log import read_eval_log
+
 def parse_logs(log_dir, eval_prefix):
     all_data = []
     
-    # Inspect saves logs as JSON files
-    log_files = glob.glob(os.path.join(log_dir, "*.json"))
+    # Inspect saves logs as .eval files (which are JSON/MessagePack formatted)
+    log_files = glob.glob(os.path.join(log_dir, "*.eval"))
+    # Also support .json in case they were manually renamed
+    log_files.extend(glob.glob(os.path.join(log_dir, "*.json")))
     
     for log_file in log_files:
         try:
-            with open(log_file, 'r') as f:
-                data = json.load(f)
-        except Exception:
+            if log_file.endswith(".eval"):
+                data = read_eval_log(log_file)
+                eval_name = data.eval.task
+                samples = data.samples
+            else:
+                with open(log_file, 'r') as f:
+                    raw_data = json.load(f)
+                eval_name = raw_data.get("eval", {}).get("task", "")
+                samples = raw_data.get("samples", [])
+        except Exception as e:
+            print(f"Error reading {log_file}: {e}")
             continue
             
         # We only care about our specific experiment
-        eval_name = data.get("eval", {}).get("task", "")
-        if not eval_name.startswith(f"{eval_prefix}_"):
+        config_name = "unknown"
+        for known in ["baseline_m5", "m3_m5", "m7_m5", "m5_m6", "m3_m5_m6", "m7_m5_m6"]:
+            if eval_name.endswith(known):
+                config_name = known
+                break
+                
+        if config_name == "unknown":
             continue
-            
-        config_name = eval_name.replace(f"{eval_prefix}_", "")
         
-        for sample in data.get("samples", []):
-            seed = sample.get("metadata", {}).get("seed", "unknown")
-            step_logs = sample.get("metadata", {}).get("trajectory_telemetry", [])
+        for sample in samples:
+            # Handle both EvalSample objects (from read_eval_log) and dicts (from json.load)
+            metadata = sample.metadata if hasattr(sample, 'metadata') else sample.get("metadata", {})
+            seed = metadata.get("seed", "unknown")
+            step_logs = metadata.get("trajectory_telemetry", [])
             
             cumulative_ale_spatial = 0
             cumulative_ale_recipe = 0
             cumulative_interface = 0
             cumulative_liveness = 0
             cumulative_info_seek = 0
+            cumulative_score = 0.0
             has_read_cookbook = 0
             
             action_history = []
             
             for step_data in step_logs:
                 step_idx = step_data.get("step", 0)
-                score = step_data.get("reward", 0.0)
+                score_delta = step_data.get("reward", 0.0)
+                cumulative_score += score_delta
                 probe_results = step_data.get("probe_results", [])
                 action_sent = step_data.get("action_sent", "")
                 valid_actions = step_data.get("valid_actions", [])
@@ -151,7 +170,7 @@ def parse_logs(log_dir, eval_prefix):
                     "Config": config_name,
                     "Seed": seed,
                     "Step": step_idx,
-                    "Score": score,
+                    "Score": cumulative_score,
                     "Step_ALE_Spatial": step_ale_spatial,
                     "Cumulative_ALE_Spatial": cumulative_ale_spatial,
                     "Step_ALE_Recipe": step_ale_recipe,
@@ -226,6 +245,31 @@ def plot_results(df: pd.DataFrame, results_dir: str):
     plt.ylabel("Has Read Cookbook (1=Yes, 0=No)")
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "cookbook_read_vs_step.png"), dpi=300)
+    plt.close()
+    
+    # Plot 5: Scatter plot of Final Cumulative ALE vs Final Score
+    # Get the final row for each Seed+Config
+    final_df = df.sort_values("Step").groupby(["Config", "Seed"]).last().reset_index()
+    final_df["Total_Final_ALE"] = final_df["Cumulative_ALE_Spatial"] + final_df["Cumulative_ALE_Recipe"]
+    
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(data=final_df, x="Total_Final_ALE", y="Score", hue="Config", s=100, alpha=0.7)
+    plt.title("Final Cumulative ALE (Spatial + Recipe) vs Final Score")
+    plt.xlabel("Total Final ALE (Hallucinations + Forgotten)")
+    plt.ylabel("Final Game Score")
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "scatter_final_ale_vs_score.png"), dpi=300)
+    plt.close()
+    
+    # Plot 6: Bar plot for Final Score by Config with 80% CI
+    plt.figure(figsize=(12, 6))
+    sns.barplot(data=final_df, x="Config", y="Score", errorbar=("ci", 80), capsize=0.1)
+    plt.title("Final Game Score by Configuration (80% CI)")
+    plt.xlabel("Configuration (Mechanism Combination)")
+    plt.ylabel("Final Score")
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig(os.path.join(results_dir, "barplot_final_score_by_config.png"), dpi=300)
     plt.close()
     
     print(f"Data analysis complete. Plots saved to {results_dir}")
