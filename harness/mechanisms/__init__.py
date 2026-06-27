@@ -5,6 +5,7 @@ from .m4_compute import M4AdaptiveCompute, M4ChainOfThought
 from .m5_templating import M5ActionTemplating
 from .m6_planning import M6Planning, M6PlanningForced, M6PlanningPrompt
 from .m7_world_model import M7WorldModelExternalization
+from .m8_game_rules import M8GameRules
 from .mechanism import Mechanism
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "M6PlanningForced",
     "M6PlanningPrompt",
     "M7WorldModelExternalization",
+    "M8GameRules",
 ]
