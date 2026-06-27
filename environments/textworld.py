@@ -1,3 +1,4 @@
+import re
 from typing import Any
 from textworld_express import TextWorldExpressEnv
 from harness.environment.environment import GameEnvironment
@@ -14,8 +15,29 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
         self.last_look = ""
         self.last_task_desc = ""
         self.current_score = 0.0
+        
+        self.seen_rooms = set()
+        self.seen_containers = set()
+
+    def _update_seen(self) -> None:
+        if not self.last_look: return
+        
+        tree = self.env.getObjectTree()
+        current_room = tree["player_location"]
+        
+        if current_room:
+            self.seen_rooms.add(current_room)
+            
+            room_data = tree["locations"][current_room]
+            contents_data = room_data["contents"]
+            for item_name, item_data in contents_data.items():
+                if isinstance(item_data, dict) and item_data.get("isContainer") and item_data.get("isOpen"):
+                    self.seen_containers.add((current_room, item_name))
 
     def reset(self, seed: int | None = None, generate_gold_path: bool = False) -> tuple[str, dict[str, Any]]:
+        self.seen_rooms.clear()
+        self.seen_containers.clear()
+        
         env_seed = seed if seed is not None else 42
         obs, info = self.env.reset(seed=env_seed, gameName=self.game_name, generateGoldPath=generate_gold_path)
         
@@ -24,6 +46,8 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
         self.last_look = info.get("look", "")
         self.last_task_desc = info.get("taskDescription", "")
         self.current_score = info.get("score", 0.0)
+        
+        self._update_seen()
         
         return obs, info
 
@@ -35,6 +59,8 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
         self.last_look = info.get("look", "")
         self.last_task_desc = info.get("taskDescription", self.last_task_desc)
         self.current_score = info.get("score", 0.0)
+        
+        self._update_seen()
         
         return obs, reward, done, info
 

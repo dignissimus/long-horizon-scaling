@@ -24,7 +24,7 @@ def m2_memory_solver(mechanism: 'M2Memory'):
             f"{current_prompt}\n\n"
             f"=== CONTEXT ===\n"
             f"{plan_context}"
-            f"Here is your current memory scratchpad:\n{mechanism.memory}\n\n"
+            f"Here is your current memory scratchpad:\n{state.metadata.get('m2_memory', 'I have just started. I have no memories yet.')}\n\n"
             f"=== TASK: MEMORY UPDATE ===\n"
             "Based on this new information, please provide an updated version of your memory scratchpad. "
             "Do NOT just write a chronological diary of your actions. "
@@ -47,9 +47,10 @@ def m2_memory_solver(mechanism: 'M2Memory'):
         )
         
         response = await generate(temp_state)
-        mechanism.memory = response.output.completion
+        new_memory = response.output.completion
+        state.metadata['m2_memory'] = new_memory
         
-        state.messages.append(TemporaryMessage(content=f"--- [M2 Memory] ---\n{mechanism.memory}"))
+        state.messages.append(TemporaryMessage(content=f"--- [M2 Memory] ---\n{new_memory}"))
         return state
         
     return solve
@@ -63,7 +64,6 @@ class M2Memory(Mechanism):
     """
     def __init__(self) -> None:
         super().__init__()
-        self.memory = "I have just started. I have no memories yet."
 
     def format_prompt(self, current_prompt: str, env: GameEnvironment, state: MechanismState) -> str:
         return current_prompt

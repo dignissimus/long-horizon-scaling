@@ -2,28 +2,14 @@ import json
 import re
 from harness.environment.environment import GameEnvironment
 from harness.probes.base import Probe, ProbeQuestion, ContainerDescription
+from environments.textworld import BaseTextWorldExpressEnvironment
 
 class CookingALEProbe(Probe):
     def __init__(self, interval: int = 1):
         super().__init__(name="ale", interval=interval)
-        self.seen_rooms: set[str] = set()
-        self.seen_containers: set[ContainerDescription] = set()
 
     def before_next_step(self, action: str, obs: str, env: GameEnvironment) -> None:
-        """Passive tracking of seen rooms and opened containers."""
-        if not hasattr(env, 'last_look') or not env.last_look:
-            return
-            
-        room_match = re.search(r"You are in the (.*?)\.", env.last_look)
-        if room_match:
-            current_room = room_match.group(1).strip()
-            self.seen_rooms.add(current_room)
-            tree = env.get_object_tree()
-            room_data = tree.get("locations", {}).get(current_room, {})
-            contents_data = room_data.get("contents", {})
-            for item_name, item_data in contents_data.items():
-                if isinstance(item_data, dict) and item_data.get("isContainer") and item_data.get("isOpen"):
-                    self.seen_containers.add(ContainerDescription(room_name=current_room, container_name=item_name))
+        pass
 
     def get_questions(self, env: GameEnvironment) -> list[ProbeQuestion]:
         questions = []
@@ -31,8 +17,14 @@ class CookingALEProbe(Probe):
         # Get ground truth from the engine's serialization tree
         tree = env.get_object_tree()
 
+        if not isinstance(env, BaseTextWorldExpressEnvironment):
+            raise TypeError("CookingALEProbe requires a BaseTextWorldExpressEnvironment")
+
+        seen_rooms = env.seen_rooms
+        seen_containers = env.seen_containers
+        
         # 1. Inventory Probe
-        inventory_items = list(tree.get("inventory", {}).keys())
+        inventory_items = list(tree["inventory"].keys())
         questions.append(ProbeQuestion(
             id="inventory",
             prompt=(
@@ -45,10 +37,10 @@ class CookingALEProbe(Probe):
         ))
         
         # 2. Room Probes
-        locations_data = tree.get("locations", {})
-        for room in self.seen_rooms:
-            room_data = locations_data.get(room, {})
-            contents_data = room_data.get("contents", {})
+        locations_data = tree["locations"]
+        for room in seen_rooms:
+            room_data = locations_data[room]
+            contents_data = room_data["contents"]
             visible_items = []
             for item_name, item_info in contents_data.items():
                 if isinstance(item_info, dict) and "name" in item_info:
@@ -67,28 +59,25 @@ class CookingALEProbe(Probe):
             ))
             
         # 3. Container Probes
-        for container in self.seen_containers:
-            room_data = locations_data.get(container.room_name, {})
-            room_contents = room_data.get("contents", {})
-            container_data = room_contents.get(container.container_name, {})
+        for room_name, container_name in seen_containers:
+            room_data = locations_data[room_name]
+            room_contents = room_data["contents"]
+            container_data = room_contents[container_name]
             
-            contents = []
-            if container_data and isinstance(container_data, dict):
-                contents_dict = container_data.get("contents", {})
-                contents = list(contents_dict.keys())
-                
+            container_contents = list(container_data["contents"].keys())
+            
             questions.append(ProbeQuestion(
-                id=f"container_{container.room_name}_{container.container_name}",
+                id=f"container_{room_name}_{container_name}",
                 prompt=(
-                    f"Based on your history, list the items inside the {container.container_name} located in the {container.room_name}. "
+                    f"Based on your history, list the items currently inside the {container_name} in the {room_name}. "
                     "Output as a line-separated list containing nothing else. Do not include conversational filler. "
-                    "If there is nothing, output 'nothing'. "
+                    "If it is empty or you don't know, output 'nothing'. "
                     "Example output:\nitem one\nitem two"
                 ),
-                metadata={"ground_truth": contents}
+                metadata={"ground_truth": container_contents}
             ))
         # 4. Recipe Ingredients Probe
-        recipe_data = tree.get("recipe", [])
+        recipe_data = tree["recipe"]
         recipe_ingredients = [item["name"] for item in recipe_data if "name" in item]
         
         questions.append(ProbeQuestion(

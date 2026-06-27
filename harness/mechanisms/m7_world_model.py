@@ -4,6 +4,7 @@ from harness.actions.types import MechanismState
 from harness.environment.environment import GameEnvironment
 from harness.mechanisms.mechanism import Mechanism
 from harness.probes.base import ContainerDescription
+from environments.textworld import BaseTextWorldExpressEnvironment
 
 class M7WorldModelExternalization(Mechanism):
     """
@@ -13,34 +14,24 @@ class M7WorldModelExternalization(Mechanism):
     """
     def __init__(self):
         super().__init__()
-        self.seen_rooms: set[str] = set()
-        self.seen_containers: set[ContainerDescription] = set()
 
     def format_prompt(self, current_prompt: str, env: GameEnvironment, state: MechanismState) -> str:
         if not hasattr(env, 'last_look') or not env.last_look:
             return current_prompt
             
-        tree = env.get_object_tree()
-
-        room_match = re.search(r"You are in the (.*?)\.", env.last_look)
-        if room_match:
-            current_room = room_match.group(1).strip()
-            self.seen_rooms.add(current_room)
+        if not isinstance(env, BaseTextWorldExpressEnvironment):
+            raise TypeError("M7WorldModelExternalization requires a BaseTextWorldExpressEnvironment")
             
-            # If any container in the current room is open while we are here, 
-            # we feasibly know its contents forever.
-            room_data = tree.get("locations", {}).get(current_room, {})
-            contents_data = room_data.get("contents", {})
-            for item_name, item_data in contents_data.items():
-                if isinstance(item_data, dict) and item_data.get("isContainer") and item_data.get("isOpen"):
-                    self.seen_containers.add(ContainerDescription(room_name=current_room, container_name=item_name))
+        tree = env.get_object_tree()
+        seen_rooms = env.seen_rooms
+        seen_containers = env.seen_containers
 
         # Build the Externalized World Model
         output = ["--- [M7 Known World Model] ---"]
         
         # 1. Inventory
         output.append("Inventory:")
-        inventory_items = list(tree.get("inventory", {}).keys())
+        inventory_items = list(tree["inventory"].keys())
         if inventory_items:
             for inv_item in inventory_items:
                 output.append(f"  - {inv_item}")
@@ -48,12 +39,12 @@ class M7WorldModelExternalization(Mechanism):
             output.append("  (empty)")
 
         # 2. Locations
-        output.append("Locations Visited:")
-        locations_data = tree.get("locations", {})
-        for room in sorted(self.seen_rooms):
+        output.append("--- KNOWN ROOMS ---")
+        locations_data = tree["locations"]
+        for room in sorted(list(seen_rooms)):
             output.append(f"  {room}:")
-            room_data = locations_data.get(room, {})
-            contents_data = room_data.get("contents", {})
+            room_data = locations_data[room]
+            contents_data = room_data["contents"]
             
             visible_items_found = False
             for item_name, item_data in contents_data.items():
@@ -62,9 +53,8 @@ class M7WorldModelExternalization(Mechanism):
                     output.append(f"    - {item_name}")
                     
                     # 3. Known Containers
-                    container_desc = ContainerDescription(room_name=room, container_name=item_name)
-                    if container_desc in self.seen_containers:
-                        contents = list(item_data.get("contents", {}).keys())
+                    if (room, item_name) in seen_containers:
+                        contents = list(item_data["contents"].keys())
                         if contents:
                             output.append(f"      [Contents: {', '.join(contents)}]")
                         else:
