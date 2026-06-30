@@ -16,6 +16,10 @@ class GameEnvironment(Protocol):
         """Returns an explicitly structured text representation of the current true state."""
         ...
 
+    def format_rules(self) -> str:
+        """Returns an explicit set of game rules or mechanics for the current environment."""
+        ...
+
     def get_valid_actions(self) -> list[str]:
         """Returns a list of admissible actions for the current state (used by M5)."""
         ...

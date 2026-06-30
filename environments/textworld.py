@@ -67,6 +67,9 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
     def format_state(self) -> str:
         return f"[System Tracking] Objective: {self.last_task_desc} | Inventory: {self.last_inventory} | Location: {self.last_look}"
 
+    def format_rules(self) -> str:
+        return ""
+
     def get_valid_actions(self) -> list[str]:
         return self.last_valid_actions
 
