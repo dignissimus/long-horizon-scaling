@@ -22,6 +22,7 @@ dev = [
     "ruff>=0.15.17",
 ]
 eda = [
+    "dataframe-image>=0.2.7",
     "ipython>=9.14.1",
     "matplotlib>=3.11.0",
     "pandas>=3.0.3",
