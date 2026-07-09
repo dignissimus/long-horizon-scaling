@@ -30,7 +30,8 @@ class CookingALEProbe(Probe):
             prompt=(
                 "Based on your history, list the items currently in your inventory. "
                 "Output as a line-separated list containing nothing else. Do not include conversational filler. "
-                "If there is nothing, output 'nothing'. "
+                # prompting this seemed to cause the model to over-use "nothing"
+                # "If there is nothing, output 'nothing'. "
                 "Example output:\nitem one\nitem two"
             ),
             metadata={"ground_truth": inventory_items}
@@ -53,7 +54,8 @@ class CookingALEProbe(Probe):
                     "Do not include items inside ANY containers, whether open or closed. "
                     "Do not include items that are currently in your inventory. "
                     "Output as a line-separated list containing nothing else. Do not include conversational filler. "
-                    "If there is nothing, output 'nothing'. "
+                    # prompting this seemed to cause the model to over-use "nothing"
+                    # "If there is nothing, output 'nothing'. "
                     "Example output:\nitem one\nitem two"
                 ),
                 metadata={"ground_truth": visible_items}
@@ -111,7 +113,8 @@ class CookingALEProbe(Probe):
             prompt=(
                 "Based on your history, list the preparation directions required by the recipe in the cookbook. "
                 "Output as a line-separated list containing nothing else. Do not include conversational filler. "
-                "If you have not read the cookbook, output 'nothing'. "
+                # prompting this seemed to cause the model to over-use "nothing"
+                # "If you have not read the cookbook, output 'nothing'. "
                 "Example output:\nslice the apple\nfry the apple"
             ),
             metadata={"ground_truth": recipe_directions}
