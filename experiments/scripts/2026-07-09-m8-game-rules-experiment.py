@@ -63,7 +63,7 @@ def create_experiment_task(experiment_name: str, config_name: str, active_mechan
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="google/gemini-2.5-flash", help="Target model provider path")
+    parser.add_argument("--model", type=str, default="google/gemini-3.1-flash-lite", help="Target model provider path")
     parser.add_argument("--steps", type=int, default=100, help="Maximum execution steps per run")
     parser.add_argument("--seeds", type=int, default=10, help="Number of unique game seeds to evaluate")
     parser.add_argument("--max_connections", type=int, default=1, help="Max parallel connections for Inspect")
