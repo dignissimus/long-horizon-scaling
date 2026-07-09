@@ -127,7 +127,7 @@ def main():
     print("=" * 60)
     
     log_dir = f"logs/2026-07-09-twe-all-environments/{final_run_name}"
-    eval(tasks, model=args.model, model_args={"include_reasoning": False}, max_connections=args.max_connections, log_dir=log_dir)
+    eval(tasks, model=args.model, max_connections=args.max_connections, log_dir=log_dir)
 
 if __name__ == "__main__":
     main()
