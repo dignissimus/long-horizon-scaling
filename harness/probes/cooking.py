@@ -74,7 +74,7 @@ class CookingALEProbe(Probe):
                 prompt=(
                     f"Based on your history, list the items currently inside the {container_name} in the {room_name}. "
                     "Output as a line-separated list containing nothing else. Do not include conversational filler. "
-                    "If it is empty or you don't know, output 'nothing'. "
+                    # "If it is empty or you don't know, output 'nothing'. "
                     "Example output:\nitem one\nitem two"
                 ),
                 metadata={"ground_truth": container_contents}
@@ -88,7 +88,7 @@ class CookingALEProbe(Probe):
             prompt=(
                 "Based on your history, list the ingredients required by the recipe in the cookbook. "
                 "Output as a line-separated list containing nothing else. Do not include conversational filler. "
-                "If you have not read the cookbook, output 'nothing'. "
+                # "If you have not read the cookbook, output 'nothing'. "
                 "Example output:\nitem one\nitem two"
             ),
             metadata={"ground_truth": recipe_ingredients}
