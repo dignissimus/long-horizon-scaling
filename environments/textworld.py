@@ -70,6 +70,9 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
     def format_rules(self) -> str:
         return ""
 
+    def format_system_prompt(self) -> str:
+        return "You are an autonomous agent playing a text-based game. Follow the in-game task description to complete your objective."
+
     def get_valid_actions(self) -> list[str]:
         return self.last_valid_actions
 

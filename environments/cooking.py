@@ -22,3 +22,6 @@ class CookingWorldEnvironment(BaseTextWorldExpressEnvironment):
             f"- Cold items (milk, cheese, meats) are usually in the fridge.\n"
             f"- Fresh produce (carrots, tomatoes, apples, onions) are usually in the garden."
         )
+
+    def format_system_prompt(self) -> str:
+        return "You are an autonomous agent playing a text-based game. Your ultimate goal is to explore the environment, locate and read the cookbook, gather the correct ingredients, and prepare the recipe exactly as instructed."

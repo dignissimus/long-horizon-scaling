@@ -20,6 +20,10 @@ class GameEnvironment(Protocol):
         """Returns an explicit set of game rules or mechanics for the current environment."""
         ...
 
+    def format_system_prompt(self) -> str:
+        """Returns the high-level goal or persona prompt for the system message."""
+        ...
+
     def get_valid_actions(self) -> list[str]:
         """Returns a list of admissible actions for the current state (used by M5)."""
         ...

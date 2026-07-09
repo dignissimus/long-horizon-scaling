@@ -57,7 +57,7 @@ def harness_orchestrator(environment_factory: Callable[[], GameEnvironment], mec
         
         from inspect_ai.model import ChatMessageSystem
         state.messages = [
-            ChatMessageSystem(content="You are an autonomous agent playing a text-based game. Your ultimate goal is to explore the environment, locate and read the cookbook, gather the correct ingredients, and prepare the recipe exactly as instructed.")
+            ChatMessageSystem(content=env.format_system_prompt())
         ]
         
         mech_state = MechanismState()
