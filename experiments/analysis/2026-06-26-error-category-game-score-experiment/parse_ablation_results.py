@@ -23,9 +23,12 @@ def clean_item_name(item: str) -> str:
             item = item[len(p):]
     return item.strip()
 
-def calculate_ale(completion: str, ground_truth: list[str]) -> int:
+def calculate_ale(completion: str, ground_truth: list[str]) -> tuple[int, int]:
     """
-    Returns the number of Accepted Local Errors (hallucinations + forgotten items).
+    Returns a tuple of (forgotten_items, total_items).
+    Returns 0.0 if the environment has nothing.
+    Hallucinations are ignored per user request.
+    Filters out common structural surfaces and containers since the agent was told to ignore them.
     """
     completion_lines = [clean_item_name(line) for line in completion.split('\n') if line.strip()]
     
@@ -35,18 +38,21 @@ def calculate_ale(completion: str, ground_truth: list[str]) -> int:
         
     cleaned_gt = [clean_item_name(gt) for gt in ground_truth]
     
-    errors = 0
+    if len(cleaned_gt) == 0:
+        return (0, 0)
+    
+    forgotten = 0
     # Check for forgotten items (False Negatives)
     for gt_item in cleaned_gt:
         if not any(gt_item in comp for comp in completion_lines):
-            errors += 1
+            forgotten += 1
             
     # Check for hallucinated items (False Positives)
-    for comp in completion_lines:
-        if not any(gt_item in comp for gt_item in cleaned_gt):
-            errors += 1
+    # for comp in completion_lines:
+    #     if not any(gt_item in comp for gt_item in cleaned_gt):
+    #         errors += 1
             
-    return errors
+    return (forgotten, len(cleaned_gt))
 
 from inspect_ai.log import read_eval_log
 
@@ -73,14 +79,22 @@ def parse_logs(log_dir, eval_prefix):
             print(f"Error reading {log_file}: {e}")
             continue
             
-        # We only care about our specific experiment
+        # The eval_name is typically in the format: "<experiment_name>_<config_name>"
+        # We can extract the config_name by finding the longest matching known config,
+        # or by splitting if we strictly enforce the naming convention.
         config_name = "unknown"
-        for known in ["baseline_m5", "m3_m5", "m7_m5", "m5_m6", "m3_m5_m6", "m7_m5_m6"]:
-            if eval_name.endswith(known):
+        known_configs = ["baseline_m5", "m3_m5", "m7_m5", "m5_m6", "m3_m5_m6", "m7_m5_m6"]
+        
+        # Sort by length descending to prevent substring collisions (e.g., m5_m6 vs m3_m5_m6)
+        known_configs.sort(key=len, reverse=True)
+        
+        for known in known_configs:
+            if eval_name.endswith(f"_{known}"):
                 config_name = known
                 break
                 
         if config_name == "unknown":
+            print(f"Skipping {eval_name}: Could not match to a known configuration.")
             continue
         
         for sample in samples:
@@ -89,8 +103,15 @@ def parse_logs(log_dir, eval_prefix):
             seed = metadata.get("seed", "unknown")
             step_logs = metadata.get("trajectory_telemetry", [])
             
-            cumulative_ale_spatial = 0
-            cumulative_ale_recipe = 0
+            cumulative_ale_spatial = 0.0
+            cumulative_ale_recipe = 0.0
+            
+            # True rolling average trackers for ALE metrics
+            cum_spatial_forgotten = 0
+            cum_spatial_total = 0
+            cum_recipe_forgotten = 0
+            cum_recipe_total = 0
+            
             cumulative_interface = 0
             cumulative_liveness = 0
             cumulative_info_seek = 0
@@ -107,37 +128,50 @@ def parse_logs(log_dir, eval_prefix):
                 action_sent = step_data.get("action_sent", "")
                 valid_actions = step_data.get("valid_actions", [])
                 
-                step_ale_spatial = 0
-                step_ale_recipe = 0
+                step_spatial_forgotten = 0
+                step_spatial_total = 0
+                step_recipe_forgotten = 0
+                step_recipe_total = 0
+                
                 drift_completion = ""
                 drift_game_goal = ""
                 
                 for pr in probe_results:
                     if pr.get("probe") == "ale":
-                        comp = pr.get("completion", "")
-                        gt = pr.get("metadata", {}).get("ground_truth", [])
-                        question_id = pr.get("question_id", pr.get("id", ""))
-                        # Fallback for question_id parsing
-                        # Wait, probe_results dictionaries don't always have 'question_id', they might be stored differently. 
-                        # Inspect saves the id from ProbeQuestion into the probe results? 
-                        # Let's check how we can differentiate. The prompt text or the gt?
-                        # It's better to just check if "recipe" is in the prompt or ID.
-                        # Wait, the id is usually returned in the probe results by our harness!
-                        # The solver.py adds: "probe": probe.name, "id": question.id
-                        q_id = pr.get("id", "")
+                        comp = pr["completion"]
+                        gt = pr["metadata"]["ground_truth"]
                         
-                        errs = calculate_ale(comp, gt)
-                        if q_id.startswith("recipe"):
-                            step_ale_recipe += errs
+                        # Strict control flow for identifying the question ID
+                        if "question_id" in pr:
+                            q_id = pr["question_id"]
+                        elif "id" in pr:
+                            q_id = pr["id"]
                         else:
-                            step_ale_spatial += errs
+                            raise KeyError("ALE probe result is missing both 'question_id' and 'id'")
+                        
+                        forgotten, total = calculate_ale(comp, gt)
+                        if q_id.startswith("recipe"):
+                            step_recipe_forgotten += forgotten
+                            step_recipe_total += total
+                        else:
+                            step_spatial_forgotten += forgotten
+                            step_spatial_total += total
                             
                     elif pr.get("probe") == "drift":
                         drift_completion = pr.get("completion", "")
                         drift_game_goal = pr.get("metadata", {}).get("game_goal", "")
                         
-                cumulative_ale_spatial += step_ale_spatial
-                cumulative_ale_recipe += step_ale_recipe
+                # Update true rolling totals
+                cum_spatial_forgotten += step_spatial_forgotten
+                cum_spatial_total += step_spatial_total
+                cum_recipe_forgotten += step_recipe_forgotten
+                cum_recipe_total += step_recipe_total
+                
+                # Calculate normalized fractional rates
+                step_ale_spatial = step_spatial_forgotten / max(1, step_spatial_total)
+                step_ale_recipe = step_recipe_forgotten / max(1, step_recipe_total)
+                cumulative_ale_spatial = cum_spatial_forgotten / max(1, cum_spatial_total)
+                cumulative_ale_recipe = cum_recipe_forgotten / max(1, cum_recipe_total)
                 
                 # 2. Interface Errors
                 step_interface = 0
@@ -161,8 +195,11 @@ def parse_logs(log_dir, eval_prefix):
                 if len(action_history) >= 2:
                     prev_action = action_history[-2]
                     curr_action = action_history[-1]
-                    if prev_action.startswith("go ") or prev_action.startswith("open door to"):
-                        if not any(curr_action.startswith(prefix) for prefix in ["look", "examine", "inventory", "read"]):
+                    # Note: We previously penalized for not looking after moving, but TextWorld 
+                    # auto-looks on room transitions. Thus, we only penalize opening closed containers 
+                    # blindly without examining their contents, or similar blind interactions.
+                    if prev_action.startswith("open ") and not prev_action.startswith("open door"):
+                        if not curr_action.startswith("look") and not curr_action.startswith("examine") and not curr_action.startswith("take"):
                             step_info_seek = 1
                 cumulative_info_seek += step_info_seek
                 
@@ -171,6 +208,7 @@ def parse_logs(log_dir, eval_prefix):
                     "Seed": seed,
                     "Step": step_idx,
                     "Score": cumulative_score,
+                    "Cum_Spatial_Total": cum_spatial_total,
                     "Step_ALE_Spatial": step_ale_spatial,
                     "Cumulative_ALE_Spatial": cumulative_ale_spatial,
                     "Step_ALE_Recipe": step_ale_recipe,
@@ -185,9 +223,31 @@ def parse_logs(log_dir, eval_prefix):
                     "Drift_Completion": drift_completion,
                     "Drift_Game_Goal": drift_game_goal
                 })
-                
-    return pd.DataFrame(all_data)
-
+    df = pd.DataFrame(all_data)
+    if df.empty:
+        return df
+        
+    min_step = df["Step"].min()
+    max_step = df["Step"].max()
+    
+    df = df.set_index(["Config", "Seed", "Step"])
+    unique_runs = df.index.droplevel("Step").unique()
+    
+    new_index = pd.MultiIndex.from_tuples(
+        [(c, s, step) for c, s in unique_runs for step in range(int(min_step), int(max_step) + 1)],
+        names=["Config", "Seed", "Step"]
+    )
+    
+    # Reindex creates NaN rows for steps where the agent had already died
+    df = df.reindex(new_index)
+    
+    # Forward-fill Score and Cumulative_ALE_Spatial to prevent survival bias
+    df["Score"] = df.groupby(level=["Config", "Seed"])["Score"].ffill()
+    df["Cumulative_ALE_Spatial"] = df.groupby(level=["Config", "Seed"])["Cumulative_ALE_Spatial"].ffill()
+    df["Cum_Spatial_Total"] = df.groupby(level=["Config", "Seed"])["Cum_Spatial_Total"].ffill()
+    
+    df = df.reset_index()
+    return df
 def plot_results(df: pd.DataFrame, results_dir: str):
     os.makedirs(results_dir, exist_ok=True)
     
@@ -197,56 +257,16 @@ def plot_results(df: pd.DataFrame, results_dir: str):
 
     sns.set_theme(style="whitegrid")
     
-    # Plot 1: Cumulative Spatial ALE Errors over Steps
+    # Plot 1: Task Score over Steps
     plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="Step", y="Cumulative_ALE_Spatial", hue="Config", errorbar="ci")
-    plt.title("Cumulative Spatial ALE (Environment Hallucinations) over Horizon")
-    plt.xlabel("Step Index (Proxy for Horizon)")
-    plt.ylabel("Cumulative Spatial ALE")
-    plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, "cumulative_ale_spatial_vs_step.png"), dpi=300)
-    plt.close()
-
-    # Plot 1b: Cumulative Recipe ALE Errors over Steps
-    plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="Step", y="Cumulative_ALE_Recipe", hue="Config", errorbar="ci")
-    plt.title("Cumulative Recipe ALE (Cookbook Hallucinations) over Horizon")
-    plt.xlabel("Step Index (Proxy for Horizon)")
-    plt.ylabel("Cumulative Recipe ALE")
-    plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, "cumulative_ale_recipe_vs_step.png"), dpi=300)
-    plt.close()
-    
-    # Plot 2: Task Score over Steps
-    plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="Step", y="Score", hue="Config", errorbar="ci")
+    sns.lineplot(data=df, x="Step", y="Score", hue="Config", errorbar=("ci", 80))
     plt.title("Task Score Progress over Horizon")
     plt.xlabel("Step Index (Proxy for Horizon)")
     plt.ylabel("Normalized Game Score")
     plt.tight_layout()
     plt.savefig(os.path.join(results_dir, "score_vs_step.png"), dpi=300)
     plt.close()
-    
-    # Plot 3: Cumulative Info Seeking Errors over Steps
-    plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="Step", y="Cumulative_Info_Seek", hue="Config", errorbar="ci")
-    plt.title("Cumulative Information-Seeking Errors over Horizon")
-    plt.xlabel("Step Index (Proxy for Horizon)")
-    plt.ylabel("Cumulative Info-Seeking Errors (Unverified Room Entries)")
-    plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, "cumulative_infoseek_vs_step.png"), dpi=300)
-    plt.close()
-    
-    # Plot 4: Cookbook Read Progress
-    plt.figure(figsize=(10, 6))
-    sns.lineplot(data=df, x="Step", y="Has_Read_Cookbook", hue="Config", errorbar="ci")
-    plt.title("Proportion of Agents that have Read the Cookbook")
-    plt.xlabel("Step Index (Proxy for Horizon)")
-    plt.ylabel("Has Read Cookbook (1=Yes, 0=No)")
-    plt.tight_layout()
-    plt.savefig(os.path.join(results_dir, "cookbook_read_vs_step.png"), dpi=300)
-    plt.close()
-    
+
     # Plot 5: Scatter plot of Final Cumulative ALE vs Final Score
     # Get the final row for each Seed+Config
     final_df = df.sort_values("Step").groupby(["Config", "Seed"]).last().reset_index()
