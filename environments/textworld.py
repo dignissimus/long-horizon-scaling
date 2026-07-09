@@ -23,6 +23,9 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
         if not self.last_look: return
         
         tree = self.env.getObjectTree()
+        if "player_location" not in tree:
+            return
+            
         current_room = tree["player_location"]
         
         if current_room:
