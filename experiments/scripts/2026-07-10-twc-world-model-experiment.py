@@ -34,7 +34,7 @@ from harness.mechanisms import (
     M3StateExternalization,
     M5ActionTemplating,
     M6Planning,
-    M7WorldModel,
+    M7WorldModelExternalization,
     M8GameRules,
 )
 from harness.solver import harness_orchestrator
@@ -96,16 +96,16 @@ def main():
     configs = {
         "baseline_m5": [M5ActionTemplating(), M8GameRules()],
         "m3_m5": [M3StateExternalization(), M5ActionTemplating(), M8GameRules()],
-        "m7_m5": [M7WorldModel(), M5ActionTemplating(), M8GameRules()],
+        "m7_m5": [M7WorldModelExternalization(), M5ActionTemplating(), M8GameRules()],
         "m5_m6": [M5ActionTemplating(), M8GameRules(), M6Planning()],
         "m3_m5_m6": [M3StateExternalization(), M5ActionTemplating(), M8GameRules(), M6Planning()],
-        "m7_m5_m6": [M7WorldModel(), M5ActionTemplating(), M8GameRules(), M6Planning()],
+        "m7_m5_m6": [M7WorldModelExternalization(), M5ActionTemplating(), M8GameRules(), M6Planning()],
         "m2_m5": [M2Memory(), M5ActionTemplating(), M8GameRules()],
         "m2_m3_m5": [M2Memory(), M3StateExternalization(), M5ActionTemplating(), M8GameRules()],
-        "m2_m7_m5": [M2Memory(), M7WorldModel(), M5ActionTemplating(), M8GameRules()],
+        "m2_m7_m5": [M2Memory(), M7WorldModelExternalization(), M5ActionTemplating(), M8GameRules()],
         "m2_m5_m6": [M2Memory(), M5ActionTemplating(), M8GameRules(), M6Planning()],
         "m2_m3_m5_m6": [M2Memory(), M3StateExternalization(), M5ActionTemplating(), M8GameRules(), M6Planning()],
-        "m2_m7_m5_m6": [M2Memory(), M7WorldModel(), M5ActionTemplating(), M8GameRules(), M6Planning()],
+        "m2_m7_m5_m6": [M2Memory(), M7WorldModelExternalization(), M5ActionTemplating(), M8GameRules(), M6Planning()],
     }
 
     environments = {
