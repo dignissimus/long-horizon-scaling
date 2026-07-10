@@ -4,8 +4,8 @@ class CookingWorldEnvironment(BaseTextWorldExpressEnvironment):
     """
     Wraps the TextWorldExpress "cookingworld" engine into our standardized GameEnvironment protocol.
     """
-    def __init__(self, step_limit: int = 100) -> None:
-        super().__init__(game_name="cookingworld", step_limit=step_limit)
+    def __init__(self, step_limit: int = 100, game_params: dict = None) -> None:
+        super().__init__(game_name="cookingworld", step_limit=step_limit, game_params=game_params)
 
     def format_rules(self) -> str:
         return (

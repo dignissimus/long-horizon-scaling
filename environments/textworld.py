@@ -7,8 +7,9 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
     """
     Base wrapper for TextWorldExpress environments into our standardized GameEnvironment protocol.
     """
-    def __init__(self, game_name: str, step_limit: int = 100) -> None:
+    def __init__(self, game_name: str, step_limit: int = 100, game_params: dict = None) -> None:
         self.game_name = game_name
+        self.game_params = game_params or {}
         self.env = TextWorldExpressEnv(envStepLimit=step_limit)
         self.last_valid_actions = []
         self.last_inventory = ""
@@ -42,7 +43,8 @@ class BaseTextWorldExpressEnvironment(GameEnvironment):
         self.seen_containers.clear()
         
         env_seed = seed if seed is not None else 42
-        obs, info = self.env.reset(seed=env_seed, gameName=self.game_name, generateGoldPath=generate_gold_path)
+        params_str = ",".join([f"{k}={v}" for k, v in self.game_params.items()])
+        obs, info = self.env.reset(seed=env_seed, gameName=self.game_name, gameParams=params_str, generateGoldPath=generate_gold_path)
         
         self.last_valid_actions = info.get("validActions", [])
         self.last_inventory = info.get("inventory", "")
