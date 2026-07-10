@@ -132,13 +132,13 @@ def main():
         )
         tasks.append(t)
 
-    log_dir = os.path.join(project_root, f"logs/2026-07-10-m8-difficulty-scaling/{diff_str}/{final_run_name}")
+    log_dir = os.path.join(project_root, f"logs/2026-07-10-cooking-world-difficulty-scaling/{diff_str}/{final_run_name}")
     os.makedirs(log_dir, exist_ok=True)
 
     eval(
         tasks,
         model=args.model,
-        reasoning_effort="none",
+        reasoning_effort=None,
         log_dir=log_dir,
         max_connections=args.max_connections,
     )
